@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Dashboard LOP — {{ course.name }}{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{{ url_for('index') }}">Trang chủ</a> /
+    <a href="{{ url_for('courses.detail', course_id=course.id) }}">{{ course.name }}</a> /
+    Dashboard
+</div>
+
+<div class="page-header">
+    <h1>📊 Dashboard Learning Opportunities</h1>
+    <div class="header-actions">
+        {% if opportunities %}
+        <a href="{{ url_for('generation.create_assignment', course_id=course.id) }}" class="btn btn-accent" style="margin-right: 10px;">✨ Tạo Bài Tập</a>
+        {% endif %}
+        <a href="{{ url_for('analytics.dashboard', course_id=course.id) }}" class="btn" style="background:#7c3aed;color:#fff;border-color:#7c3aed;">📊 Analytics</a>
+        <a href="{{ url_for('discovery.run', course_id=course.id) }}" class="btn">🔍 Phát hiện lỗ hổng</a>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom: 20px;">
+    <div class="card-header">
+        <h3>Lỗ hổng kiến thức đã phát hiện ({{ gaps|length }})</h3>
+    </div>
+    <div class="card-body">
+        {% if gaps %}
+        <table class="table" style="width: 100%; text-align: left; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th style="border-bottom: 1px solid #ddd; padding: 8px;">ID</th>
+                    <th style="border-bottom: 1px solid #ddd; padding: 8px;">Lỗ hổng</th>
+                    <th style="border-bottom: 1px solid #ddd; padding: 8px;">Mô tả</th>
+                    <th style="border-bottom: 1px solid #ddd; padding: 8px;">Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for gap in gaps %}
+                <tr>
+                    <td style="padding: 8px;">#{{ gap.id }}</td>
+                    <td style="padding: 8px;"><strong>{{ gap.title }}</strong></td>
+                    <td style="padding: 8px; color: #555;">{{ gap.description or '—' }}</td>
+                    <td style="padding: 8px;">
+                        <a href="{{ url_for('generation.generate', course_id=course.id, gap=gap.title) }}" class="btn btn-sm btn-accent">✨ Sinh bài tập</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state" style="padding: 20px;">
+            <p>Chưa phát hiện lỗ hổng kiến thức nào.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if opportunities %}
+<div class="card">
+    <div class="card-header">
+        <h3>Danh sách bài tập (LOP) dự kiến</h3>
+    </div>
+    <div class="card-body">
+        <table class="table" style="width: 100%; text-align: left; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th style="border-bottom: 1px solid #ddd; padding: 8px;">ID</th>
+                    <th style="border-bottom: 1px solid #ddd; padding: 8px;">Loại bài tập</th>
+                    <th style="border-bottom: 1px solid #ddd; padding: 8px;">Thuộc lỗ hổng</th>
+                    <th style="border-bottom: 1px solid #ddd; padding: 8px;">Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for lop in opportunities %}
+                <tr>
+                    <td style="padding: 8px;">#{{ lop.id }}</td>
+                    <td style="padding: 8px;"><span class="badge">{{ lop.type | upper }}</span></td>
+                    <td style="padding: 8px;">{{ lop.gap.title }}</td>
+                    <td style="padding: 8px;">
+                        <a href="{{ url_for('generation.edit', lop_id=lop.id) }}" class="btn btn-sm btn-outline">Sửa JSON</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body">
+        <div class="empty-state" style="padding: 40px;">
+            <div class="empty-icon">📊</div>
+            <h3>Chưa có cơ hội học tập nào được sinh ra</h3>
+            <p>Hãy chạy phát hiện lỗ hổng rồi sinh ra bài tập.</p>
+            <div class="btn-row" style="justify-content: center;">
+                <a href="{{ url_for('discovery.run', course_id=course.id) }}" class="btn">← Đi đến Quét Lỗ Hổng</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if assignments %}
+<div class="card" style="margin-top: 20px;">
+    <div class="card-header">
+        <h3>Bài Tập Đã Giao ({{ assignments|length }})</h3>
+    </div>
+    <div class="card-body">
+        <table class="table" style="width: 100%; text-align: left; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th style="border-bottom: 1px solid #ddd; padding: 8px;">ID</th>
+                    <th style="border-bottom: 1px solid #ddd; padding: 8px;">Tên Bài Tập</th>
+                    <th style="border-bottom: 1px solid #ddd; padding: 8px;">Ngày tiếp nhận</th>
+                    <th style="border-bottom: 1px solid #ddd; padding: 8px;">Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in assignments %}
+                <tr>
+                    <td style="padding: 8px;">#{{ a.id }}</td>
+                    <td style="padding: 8px;"><strong>{{ a.title }}</strong></td>
+                    <td style="padding: 8px;">{{ a.created_at.strftime('%Y-%m-%d %H:%M') if a.created_at else '' }}</td>
+                    <td style="padding: 8px;">
+                        <a href="{{ url_for('generation.assignment_dashboard', assignment_id=a.id) }}" class="btn btn-sm btn-accent">Thống kê</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

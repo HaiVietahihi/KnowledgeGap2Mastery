@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Chỉnh sửa LOP — {{ course.name }}{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{{ url_for('index') }}">Trang chủ</a> /
+    <a href="{{ url_for('courses.detail', course_id=course.id) }}">{{ course.name }}</a> /
+    <a href="{{ url_for('generation.dashboard', course_id=course.id) }}">Dashboard LOP</a> /
+    Chỉnh sửa Bài tập #{{ lop.id }}
+</div>
+
+<div class="page-header">
+    <h1>✏️ Chỉnh sửa Nội dung Bài tập</h1>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3>Bài tập #{{ lop.id }} - Lỗ hổng: {{ lop.gap.title }}</h3>
+    </div>
+    <div class="card-body">
+        <div class="info-box">
+            💡 <strong>Hướng dẫn:</strong> Chỉnh sửa trực tiếp nội dung bài tập bằng định dạng JSON dưới đây. Hãy đảm bảo cú pháp JSON hợp lệ trước khi lưu.
+            <br>
+            Cấp độ Bloom: <strong>{{ lop.bloom_level }}</strong> | Độ khó: <strong>{{ lop.difficulty }}</strong>
+        </div>
+
+        <form method="POST">
+            <div class="form-group">
+                <label for="content">Nội dung Bài tập (JSON)</label>
+                <textarea id="content" name="content" rows="20" style="font-family: monospace; width: 100%;">{{ content_json }}</textarea>
+            </div>
+
+            <div class="btn-row">
+                <button type="submit" class="btn btn-accent btn-lg">💾 Lưu thay đổi</button>
+                <a href="{{ url_for('generation.dashboard', course_id=course.id) }}" class="btn">Hủy bỏ</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

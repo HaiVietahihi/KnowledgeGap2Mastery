@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Tìm khóa học — KG2M{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{{ url_for('index') }}">Trang chủ</a> / Tìm khóa học
+</div>
+
+<div class="page-header">
+    <h1>🔍 Khám phá khóa học</h1>
+    <p>Tìm và tự tham gia các khóa học có sẵn trên hệ thống để nâng cao kiến thức.</p>
+</div>
+
+{% if available_courses %}
+<div class="card-grid">
+    {% for course in available_courses %}
+    <div class="card">
+        <div class="card-header">
+            <h3><span class="course-icon">🎓</span> {{ course.name }}</h3>
+            <span class="badge">{{ course.code }}</span>
+        </div>
+        <div class="card-body">
+            <p>{{ course.description or 'Chưa có mô tả.' }}</p>
+        </div>
+        <div class="card-footer">
+            <a href="{{ url_for('courses.detail', course_id=course.id) }}" class="btn btn-primary btn-sm">Xem chi tiết
+                khóa học</a>
+            <form action="{{ url_for('courses.enroll', course_id=course.id) }}" method="POST" style="display:inline;">
+                <button type="submit" class="btn btn-accent btn-sm">Tham gia ngay</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-icon">🎉</div>
+    <h3>Tuyệt vời!</h3>
+    <p>Bạn đã tham gia tất cả các khóa học có sẵn trên hệ thống.</p>
+    <a href="{{ url_for('index') }}" class="btn btn-primary">Quay lại trang chủ</a>
+</div>
+{% endif %}
+{% endblock %}

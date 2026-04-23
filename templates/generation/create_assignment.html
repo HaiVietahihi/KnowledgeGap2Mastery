@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Tạo Bài Tập — {{ course.name }}{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{{ url_for('index') }}">Trang chủ</a> /
+    <a href="{{ url_for('courses.detail', course_id=course.id) }}">{{ course.name }}</a> /
+    <a href="{{ url_for('generation.dashboard', course_id=course.id) }}">Dashboard LOP</a> /
+    Tạo Bài Tập
+</div>
+
+<div class="page-header">
+    <h1>📝 Tạo Bài Tập Tổng Hợp</h1>
+</div>
+
+<form method="POST" class="card">
+    <div class="card-body">
+        <div class="form-group">
+            <label for="title" style="font-weight: bold; font-size: 16px;">Tên bài tập:</label>
+            <input type="text" id="title" name="title" class="form-control" placeholder="Ví dụ: Bài tập ôn luyện tuần 1" required style="width: 100%; padding: 10px; margin-top: 5px;">
+        </div>
+        
+        <h3 style="margin-top: 20px; margin-bottom: 10px;">Chọn các câu hỏi từ các LOP đã tạo:</h3>
+        
+        {% set current_gap = "" %}
+        {% for q_item in all_questions %}
+        
+        {% if q_item.gap_title != current_gap %}
+            {% if current_gap != "" %}</div>{% endif %}
+            <div style="margin-top: 25px; margin-bottom: 10px;">
+                <h4 style="border-bottom: 2px solid #ccc; padding-bottom: 5px;">Từ Lỗ hổng: "{{ q_item.gap_title }}"</h4>
+            </div>
+            <div class="questions-group">
+            {% set current_gap = q_item.gap_title %}
+        {% endif %}
+        
+        {% set q = q_item.q_data %}
+        <div class="question-card" style="border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; background: #fafafa;">
+            <label style="display: flex; align-items: flex-start; cursor: pointer;">
+                <input type="checkbox" name="question_indices" value="{{ q_item.global_index }}" style="margin-top: 5px; margin-right: 15px; transform: scale(1.5);">
+                <div style="flex: 1;">
+                    <div style="font-weight: bold; margin-bottom: 10px;">Câu: {{ q.get('cau_hoi', '') }}</div>
+                    
+                    {% if q.get('dap_an') %}
+                    <ul style="list-style-type: none; padding-left: 0; margin-bottom: 0;">
+                        {% for key, val in q.dap_an.items() %}
+                        <li style="margin-bottom: 5px; {% if key == q.get('dap_an_dung') %}color: green; font-weight: bold;{% endif %}">
+                            {{ key }}. {{ val }} {% if key == q.get('dap_an_dung') %}(Đáp án đúng){% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </div>
+            </label>
+        </div>
+        
+        {% if loop.last %}</div>{% endif %}
+        
+        {% else %}
+        <div class="alert alert-warning">Chưa có câu hỏi nào được tạo trong các LOP của khóa học.</div>
+        {% endfor %}
+        
+        <div style="margin-top: 20px;">
+            <button type="submit" class="btn btn-primary" style="padding: 10px 20px; font-size: 16px;">Tạo Bài Tập Này</button>
+            <a href="{{ url_for('generation.dashboard', course_id=course.id) }}" class="btn btn-outline" style="margin-left: 10px;">Hủy</a>
+        </div>
+    </div>
+</form>
+{% endblock %}

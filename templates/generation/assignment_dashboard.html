@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}Dashboard Bài Tập: {{ assignment.title }}{% endblock %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="breadcrumb">
+    <a href="{{ url_for('index') }}">Trang chủ</a> /
+    <a href="{{ url_for('courses.detail', course_id=assignment.course_id) }}">{{ assignment.course.name }}</a> /
+    <a href="{{ url_for('generation.dashboard', course_id=assignment.course_id) }}">Dashboard LOP</a> /
+    {{ assignment.title }}
+</div>
+
+<style>
+    .text-red { color: red !important; }
+    .text-green { color: green !important; }
+    .bg-red { background-color: red !important; }
+    .bg-orange { background-color: orange !important; }
+    .bg-green { background-color: #4CAF50 !important; }
+    .gap-title-first { margin-top: 0; }
+    .gap-title-rest { margin-top: 30px; }
+</style>
+
+<div class="page-header">
+    <h1>📈 Dashboard Bài Tập: {{ assignment.title }}</h1>
+</div>
+
+<div class="card" style="margin-bottom: 20px;">
+    <div class="card-header">
+        <h3>Thống Kê Sinh Viên</h3>
+    </div>
+    <div class="card-body" style="display: flex; flex-direction: row; align-items: flex-start; gap: 30px; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 400px;">
+            <table class="table" style="width: 100%; border-collapse: collapse; text-align: left;">
+                <thead>
+                    <tr>
+                        <th style="border-bottom: 1px solid #ddd; padding: 10px;">Sinh viên</th>
+                        <th style="border-bottom: 1px solid #ddd; padding: 10px;">Trạng thái</th>
+                        <th style="border-bottom: 1px solid #ddd; padding: 10px;">Điểm số</th>
+                        <th style="border-bottom: 1px solid #ddd; padding: 10px;">Hoàn thành lúc</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for st in enrolled_students %}
+                    
+                    {% set ns = namespace(st_submission=none) %}
+                    {% for sub in submissions %}
+                        {% if sub.student_id == st.id %}
+                            {% set ns.st_submission = sub %}
+                        {% endif %}
+                    {% endfor %}
+                    {% set st_submission = ns.st_submission %}
+                    
+                    <tr>
+                        <td style="padding: 10px;">{{ st.name }} ({{ st.id }})</td>
+                        <td style="padding: 10px;">
+                            {% if st_submission and st_submission.status == 'completed' %}
+                            <span style="color: green; font-weight: bold;">Đã nộp</span>
+                            {% else %}
+                            <span style="color: gray;">Chưa nộp</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 10px; font-weight: bold;">{{ st_submission.score if st_submission else '—' }}</td>
+                        <td style="padding: 10px;">{{ st_submission.completed_at.strftime('%Y-%m-%d %H:%M') if st_submission and st_submission.completed_at else '—' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" style="text-align: center; padding: 20px;">Khóa học này chưa có sinh viên.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div style="width: 320px; padding: 20px; background: #fafafa; border-radius: 8px; border: 1px solid #ddd; text-align: center;">
+            <canvas id="completionChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3>Thống Kê Câu Hỏi Bị Sai Phổ Biến</h3>
+    </div>
+    <div class="card-body">
+        {% for gap_title, qs in gap_stats.items() %}
+        <h4 class="{{ 'gap-title-first' if loop.first else 'gap-title-rest' }}" style="margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 5px;">Lỗ hổng: <span style="color: #007bff;">{{ gap_title }}</span></h4>
+        <table class="table" style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead>
+                <tr>
+                    <th style="border-bottom: 1px solid #ddd; padding: 10px; width: 50px;">Câu</th>
+                    <th style="border-bottom: 1px solid #ddd; padding: 10px;">Nội dung</th>
+                    <th style="border-bottom: 1px solid #ddd; padding: 10px; width: 120px;">Sai / Tổng nộp</th>
+                    <th style="border-bottom: 1px solid #ddd; padding: 10px; width: 150px;">Tỷ lệ sai</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in qs %}
+                <tr>
+                    <td style="padding: 10px;">{{ s.index }}</td>
+                    <td style="padding: 10px;">{{ s.question }}</td>
+                    <td class="{{ 'text-red' if s.wrong_count > 0 else 'text-green' }}" style="padding: 10px; font-weight: bold;">{{ s.wrong_count }} / {{ s.total_count }}</td>
+                    <td style="padding: 10px;">
+                        <div style="background-color: #eee; width: 100%; height: 20px; border-radius: 10px; overflow: hidden; position: relative;">
+                            {% set bg_class = 'bg-red' if s.wrong_percentage > 50 else ('bg-orange' if s.wrong_percentage > 20 else 'bg-green') %}
+                            <div class="{{ bg_class }}" style="width: {{ s.wrong_percentage }}%; height: 100%;"></div>
+                            <span style="position: absolute; width: 100%; text-align: center; top: 0; left: 0; font-size: 12px; line-height: 20px; font-weight: bold;">{{ s.wrong_percentage }}%</span>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="alert alert-info" style="padding: 15px; border-radius: 4px; background-color: #e2e3e5;">Không có dữ liệu thống kê câu hỏi. Có thể mã lỗi hoặc chưa ai làm bài.</div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const ctx = document.getElementById('completionChart');
+        if (ctx) {
+            new Chart(ctx.getContext('2d'), {
+                type: 'pie',
+                data: {
+                    labels: ['Đã nộp bài', 'Chưa làm'],
+                    datasets: [{
+                        data: [{{ total_completed }}, {{ total_not_completed }}],
+                        backgroundColor: ['#28a745', '#dc3545'],
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        title: { display: true, text: 'Tỷ lệ sinh viên làm bài', font: {size: 14} }
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

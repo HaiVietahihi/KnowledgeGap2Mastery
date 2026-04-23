@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Kết quả phân tích — {{ course.name }}{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{{ url_for('index') }}">Trang chủ</a> /
+    <a href="{{ url_for('courses.detail', course_id=course.id) }}">{{ course.name }}</a> /
+    Kết quả lỗ hổng
+</div>
+
+<div class="page-header">
+    <h1>📊 Kết quả phát hiện lỗ hổng</h1>
+    <div class="header-actions">
+        <a href="{{ url_for('discovery.run', course_id=course.id) }}" class="btn">🔍 Phân tích lại</a>
+        <a href="{{ url_for('refinement.review', course_id=course.id) }}" class="btn btn-accent">👨‍🏫 Chuyên gia
+            duyệt</a>
+    </div>
+</div>
+
+{% if task.status == 'running' %}
+<div class="card">
+    <div class="card-body text-center" style="padding: 60px;">
+        <div class="spinner"></div>
+        <h3>Đang phân tích...</h3>
+        <p class="muted">Hệ thống đang xử lý câu hỏi sinh viên. Vui lòng chờ.</p>
+        <div class="progress-steps">
+            <div class="progress-step active">1. Xác định lỗ hổng từng bài đăng</div>
+            <div class="progress-step">2. Gộp nhóm thành danh mục</div>
+            <div class="progress-step">3. Phân loại bài đăng</div>
+            <div class="progress-step">4. Tính coverage & cohesion</div>
+        </div>
+    </div>
+</div>
+<script>
+    setTimeout(function () { location.reload(); }, 5000);
+</script>
+
+{% elif task.status == 'done' %}
+{% set result = task.result %}
+
+<div class="card" style="margin-bottom: 20px;">
+    <div class="card-header">
+        <h3>🎯 Lỗ hổng kiến thức đã phát hiện ({{ result.knowledge_gaps|length }})</h3>
+    </div>
+    <div class="card-body">
+        {% for gap in result.knowledge_gaps %}
+        <div class="card" style="margin-bottom: 16px; border-left: 4px solid var(--primary);">
+            <div class="card-header">
+                <h4>{{ gap.knowledge_gap }}</h4>
+                <div>
+                    <span class="coverage-badge">{{ gap.coverage }} bài đăng</span>
+                    {% if gap.cohesion == 'Cao' %}
+                    <span class="cohesion-badge cohesion-high">Nhất quán: Cao</span>
+                    {% elif gap.cohesion == 'Thấp' %}
+                    <span class="cohesion-badge cohesion-low">Nhất quán: Thấp</span>
+                    {% else %}
+                    <span class="cohesion-badge cohesion-medium">Nhất quán: TB</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% if gap.posts %}
+            <div class="card-body">
+                <p class="muted" style="margin-bottom: 8px;">Bài đăng liên quan:</p>
+                {% for post in gap.posts[:3] %}
+                <div class="post-item">{{ post }}</div>
+                {% endfor %}
+                {% if gap.posts|length > 3 %}
+                <p class="muted">... và {{ gap.posts|length - 3 }} bài đăng khác</p>
+                {% endif %}
+            </div>
+            {% endif %}
+            <div class="card-footer">
+                <a href="{{ url_for('refinement.review', course_id=course.id) }}" class="btn btn-accent btn-sm">👨‍🏫
+                    Duyệt & Sinh LOP</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% elif task.status == 'error' %}
+<div class="alert alert-error">
+    ❌ <strong>Lỗi:</strong> {{ task.error }}
+</div>
+<a href="{{ url_for('discovery.run', course_id=course.id) }}" class="btn btn-primary">🔁 Thử lại</a>
+
+{% else %}
+<div class="alert alert-warning">
+    ⚠️ Không tìm thấy task. Vui lòng chạy phân tích lại.
+</div>
+<a href="{{ url_for('discovery.run', course_id=course.id) }}" class="btn btn-primary">🔍 Phân tích lại</a>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}{{ course.name }} — Đặt câu hỏi{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-content">
+        <h1>❓ Đặt câu hỏi - {{ course.name }}</h1>
+        <p class="subtitle">Khóa học: {{ course.code }}</p>
+    </div>
+    <a href="{{ url_for('courses.detail', course_id=course.id) }}" class="btn btn-outline">&larr; Quay lại</a>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;">
+    <!-- Cột trái: Form đặt câu hỏi -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Đặt câu hỏi mới</h3>
+        </div>
+        <div class="card-body">
+            <form method="POST" id="questions-form">
+                <div id="questions-container">
+                    <div class="question-item" style="border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin-bottom: 16px; position: relative;">
+                        <h4 style="margin-top: 0; margin-bottom: 12px; font-size: 14px; color: #475569;">Câu hỏi 1</h4>
+                        
+                        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-bottom: 12px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 12px;">📚 Tài liệu liên quan</label>
+                                <select name="doc_id[]" class="form-control" style="font-size: 14px; padding: 8px;">
+                                    <option value="">-- Không xác định --</option>
+                                    {% for doc in documents %}
+                                    <option value="{{ doc.id }}">{{ doc.doc_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 12px;">📄 Trang số (Optional)</label>
+                                <input type="number" name="page_num[]" class="form-control" style="font-size: 14px; padding: 8px;" placeholder="VD: 5">
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-size: 12px;">Nội dung câu hỏi *</label>
+                            <textarea name="content[]" class="form-control" rows="3" required
+                                placeholder="Ví dụ: Thưa thầy, tại sao đoạn code này lại dùng vòng lặp while thay vì for ạ?"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-top: 16px;">
+                    <button type="button" class="btn btn-outline" id="add-question-btn" style="flex: 1;">+ Thêm câu hỏi khác</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 2;">Gửi câu hỏi môn học</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Cột phải: Lịch sử câu hỏi -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Lịch sử câu hỏi của bạn</h3>
+        </div>
+        <div class="card-body" style="padding: 0;">
+            {% if history %}
+            <div style="max-height: 500px; overflow-y: auto;">
+                <table class="table" style="margin-bottom: 0;">
+                    <thead>
+                        <tr>
+                            <th>Nội dung</th>
+                            <th width="120px">Trạng thái</th>
+                            <th width="100px">Thời gian</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for q in history %}
+                        <tr>
+                            <td>
+                                <div style="font-size: 14px; color: #334155; line-height: 1.5;">
+                                    {{ q.content }}
+                                </div>
+                            </td>
+                            <td>
+                                {% if q.status == 'processed' %}
+                                <span class="badge" style="background-color: #dcfce7; color: #166534;">✅ Đã phản hồi</span>
+                                {% else %}
+                                <span class="badge" style="background-color: #fef9c3; color: #854d0e;">⏳ Chờ xử lý</span>
+                                {% endif %}
+                            </td>
+                            <td style="font-size: 12px; color: #64748b;">
+                                {{ q.created_at.strftime('%Y-%m-%d %H:%M:%S') if q.created_at else '' }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div style="padding: 32px; text-align: center; color: #64748b;">
+                <div style="font-size: 32px; margin-bottom: 12px;">📭</div>
+                <p>Bạn chưa đặt câu hỏi nào trong khóa học này.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<template id="question-template">
+    <div class="question-item" style="border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin-bottom: 16px; position: relative;">
+        <button type="button" onclick="this.parentElement.remove()" style="position: absolute; right: 12px; top: 12px; background: none; border: none; color: #ef4444; cursor: pointer; font-size: 16px;">&times;</button>
+        <h4 class="question-title" style="margin-top: 0; margin-bottom: 12px; font-size: 14px; color: #475569;">Câu hỏi</h4>
+        
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-size: 12px;">📚 Tài liệu liên quan</label>
+                <select name="doc_id[]" class="form-control" style="font-size: 14px; padding: 8px;">
+                    <option value="">-- Không xác định --</option>
+                    {% for doc in documents %}
+                    <option value="{{ doc.id }}">{{ doc.doc_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-size: 12px;">📄 Trang số (Optional)</label>
+                <input type="number" name="page_num[]" class="form-control" style="font-size: 14px; padding: 8px;" placeholder="VD: 5">
+            </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+            <label style="font-size: 12px;">Nội dung câu hỏi *</label>
+            <textarea name="content[]" class="form-control" rows="3" required
+                placeholder="Ví dụ: Phân tích thêm về vòng lặp while..."></textarea>
+        </div>
+    </div>
+</template>
+
+<script>
+document.getElementById('add-question-btn').addEventListener('click', function() {
+    const container = document.getElementById('questions-container');
+    const questionCount = container.children.length + 1;
+    
+    const template = document.getElementById('question-template');
+    const clone = template.content.cloneNode(true);
+    
+    clone.querySelector('.question-title').textContent = 'Câu hỏi ' + questionCount;
+    container.appendChild(clone);
+});
+</script>
+{% endblock %}

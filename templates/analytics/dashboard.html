@@ -1,0 +1,670 @@
+{% extends "base.html" %}
+{% block title %}📊 Analytics — {{ course.name }}{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    /* ── Analytics KPI Cards ── */
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+        margin-bottom: 28px;
+    }
+    .kpi-card {
+        background: var(--white);
+        border: 1px solid var(--gray-200);
+        border-radius: 12px;
+        padding: 20px;
+        position: relative;
+        overflow: hidden;
+        transition: transform .2s, box-shadow .2s;
+    }
+    .kpi-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0,0,0,.08);
+    }
+    .kpi-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 4px;
+    }
+    .kpi-card.kpi-blue::before   { background: linear-gradient(90deg, #4f46e5, #818cf8); }
+    .kpi-card.kpi-green::before  { background: linear-gradient(90deg, #059669, #34d399); }
+    .kpi-card.kpi-orange::before { background: linear-gradient(90deg, #d97706, #fbbf24); }
+    .kpi-card.kpi-purple::before { background: linear-gradient(90deg, #7c3aed, #a78bfa); }
+    .kpi-card.kpi-rose::before   { background: linear-gradient(90deg, #e11d48, #fb7185); }
+    .kpi-card.kpi-cyan::before   { background: linear-gradient(90deg, #0891b2, #22d3ee); }
+
+    .kpi-icon {
+        font-size: 28px;
+        margin-bottom: 8px;
+    }
+    .kpi-value {
+        font-size: 32px;
+        font-weight: 800;
+        line-height: 1;
+        margin-bottom: 4px;
+    }
+    .kpi-card.kpi-blue .kpi-value   { color: #4f46e5; }
+    .kpi-card.kpi-green .kpi-value  { color: #059669; }
+    .kpi-card.kpi-orange .kpi-value { color: #d97706; }
+    .kpi-card.kpi-purple .kpi-value { color: #7c3aed; }
+    .kpi-card.kpi-rose .kpi-value   { color: #e11d48; }
+    .kpi-card.kpi-cyan .kpi-value   { color: #0891b2; }
+
+    .kpi-label {
+        font-size: 13px;
+        color: var(--gray-400);
+        font-weight: 500;
+    }
+    .kpi-sub {
+        font-size: 12px;
+        color: var(--gray-400);
+        margin-top: 6px;
+    }
+
+    /* ── Charts Grid ── */
+    .charts-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 24px;
+    }
+    @media (max-width: 800px) {
+        .charts-grid { grid-template-columns: 1fr; }
+    }
+    .chart-card {
+        background: var(--white);
+        border: 1px solid var(--gray-200);
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: var(--shadow);
+    }
+    .chart-card h4 {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--gray-600);
+        margin-bottom: 16px;
+    }
+    .chart-container {
+        position: relative;
+        width: 100%;
+        max-height: 280px;
+    }
+
+    /* ── Progress bar ── */
+    .progress-bar-bg {
+        background: var(--gray-100);
+        border-radius: 8px;
+        height: 10px;
+        overflow: hidden;
+        width: 100%;
+    }
+    .progress-bar-fill {
+        height: 100%;
+        border-radius: 8px;
+        transition: width .6s ease;
+    }
+    .progress-green  { background: linear-gradient(90deg, #059669, #34d399); }
+    .progress-blue   { background: linear-gradient(90deg, #4f46e5, #818cf8); }
+    .progress-orange { background: linear-gradient(90deg, #d97706, #fbbf24); }
+    .progress-red    { background: linear-gradient(90deg, #dc2626, #f87171); }
+
+    /* ── Student row ── */
+    .student-link {
+        color: var(--primary);
+        text-decoration: none;
+        font-weight: 600;
+    }
+    .student-link:hover {
+        text-decoration: underline;
+    }
+
+    /* ── Gap chip inline ── */
+    .gap-chip-sm {
+        display: inline-block;
+        padding: 2px 8px;
+        background: #fef3c7;
+        color: #92400e;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 500;
+        margin: 1px 2px;
+    }
+
+    /* ── Wrong question highlight ── */
+    .wrong-bar {
+        background: var(--gray-100);
+        border-radius: 10px;
+        height: 22px;
+        overflow: hidden;
+        position: relative;
+        min-width: 60px;
+    }
+    .wrong-bar-fill {
+        height: 100%;
+        border-radius: 10px;
+    }
+    .wrong-bar-label {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+    }
+    .fill-danger { background: linear-gradient(90deg, #dc2626, #f87171); }
+    .fill-warning { background: linear-gradient(90deg, #d97706, #fbbf24); }
+    .fill-success { background: linear-gradient(90deg, #059669, #34d399); }
+
+    /* ── Section title ── */
+    .section-title {
+        font-size: 16px;
+        font-weight: 700;
+        margin-bottom: 16px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid var(--gray-100);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    /* ── Score badge ── */
+    .score-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 700;
+    }
+    .score-high   { background: #d1fae5; color: #059669; }
+    .score-medium { background: #fef3c7; color: #92400e; }
+    .score-low    { background: #fee2e2; color: #dc2626; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{{ url_for('index') }}">Trang chủ</a> /
+    <a href="{{ url_for('courses.detail', course_id=course.id) }}">{{ course.name }}</a> /
+    Analytics
+</div>
+
+<div class="page-header">
+    <h1>📊 Analytics — {{ course.name }}</h1>
+    <div class="header-actions">
+        <a href="{{ url_for('courses.detail', course_id=course.id) }}" class="btn">← Quay lại khóa học</a>
+        <a href="{{ url_for('generation.dashboard', course_id=course.id) }}" class="btn btn-accent">✨ Dashboard LOP</a>
+    </div>
+</div>
+
+<!-- ══════════════════ KPI CARDS ══════════════════ -->
+<div class="kpi-grid">
+    <div class="kpi-card kpi-blue">
+        <div class="kpi-icon">👥</div>
+        <div class="kpi-value">{{ total_students }}</div>
+        <div class="kpi-label">Sinh viên đăng ký</div>
+        <div class="kpi-sub">{{ active_students }} đã làm bài</div>
+    </div>
+    <div class="kpi-card kpi-cyan">
+        <div class="kpi-icon">📄</div>
+        <div class="kpi-value">{{ total_docs }}</div>
+        <div class="kpi-label">Tài liệu</div>
+        <div class="kpi-sub">{{ total_pages }} trang đã xử lý</div>
+    </div>
+    <div class="kpi-card kpi-orange">
+        <div class="kpi-icon">❓</div>
+        <div class="kpi-value">{{ total_questions }}</div>
+        <div class="kpi-label">Câu hỏi đã đặt</div>
+        <div class="kpi-sub">{{ pending_questions }} chưa xử lý</div>
+    </div>
+    <div class="kpi-card kpi-purple">
+        <div class="kpi-icon">🔍</div>
+        <div class="kpi-value">{{ total_gaps }}</div>
+        <div class="kpi-label">Lỗ hổng phát hiện</div>
+    </div>
+    <div class="kpi-card kpi-green">
+        <div class="kpi-icon">📝</div>
+        <div class="kpi-value">{{ total_assignments }}</div>
+        <div class="kpi-label">Bài tập đã giao</div>
+        <div class="kpi-sub">{{ overall_completion_pct }}% tỷ lệ hoàn thành</div>
+    </div>
+    <div class="kpi-card kpi-rose">
+        <div class="kpi-icon">⭐</div>
+        <div class="kpi-value">{{ overall_avg_score }}</div>
+        <div class="kpi-label">Điểm trung bình / 10</div>
+    </div>
+</div>
+
+<!-- ══════════════════ CHARTS ROW 1 ══════════════════ -->
+<div class="charts-grid">
+    <div class="chart-card">
+        <h4>📈 Tỷ lệ sai theo Lỗ Hổng Kiến Thức</h4>
+        <div class="chart-container">
+            <canvas id="gapChart"></canvas>
+        </div>
+        {% if not gap_data %}
+        <p class="muted" style="text-align:center; margin-top:20px;">Chưa có dữ liệu lỗ hổng.</p>
+        {% endif %}
+    </div>
+    <div class="chart-card">
+        <h4>🎯 Tỷ lệ hoàn thành bài tập tổng thể</h4>
+        <div class="chart-container" style="max-width: 260px; margin: 0 auto;">
+            <canvas id="completionChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════ CHARTS ROW 2 ══════════════════ -->
+<div class="charts-grid">
+    <div class="chart-card">
+        <h4>📊 Phân bố điểm số toàn khóa học</h4>
+        <div class="chart-container">
+            <canvas id="scoreDistChart"></canvas>
+        </div>
+    </div>
+    <div class="chart-card">
+        <h4>📋 Tỷ lệ hoàn thành theo từng Bài Tập</h4>
+        <div class="chart-container">
+            <canvas id="assignmentChart"></canvas>
+        </div>
+        {% if not assignment_stats %}
+        <p class="muted" style="text-align:center; margin-top:20px;">Chưa có bài tập nào.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ══════════════════ TOP WRONG QUESTIONS ══════════════════ -->
+<div class="card">
+    <div class="card-header">
+        <h3>🔥 Top Câu Hỏi Bị Sai Nhiều Nhất</h3>
+    </div>
+    <div class="card-body">
+        {% if top_wrong %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th style="width:50px;">STT</th>
+                    <th>Câu hỏi</th>
+                    <th>Lỗ hổng</th>
+                    <th>Bài tập</th>
+                    <th style="width:100px;">Sai / Tổng</th>
+                    <th style="width:140px;">Tỷ lệ sai</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for wq in top_wrong %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td title="{{ wq.question_text }}">{{ wq.question_text[:70] }}{{ '…' if wq.question_text|length > 70 else '' }}</td>
+                    <td><span class="gap-chip-sm">{{ wq.gap_title[:25] }}</span></td>
+                    <td class="muted">{{ wq.assignment_title }}</td>
+                    <td style="font-weight:700;">{{ wq.wrong_count }} / {{ wq.total_attempted }}</td>
+                    <td>
+                        <div class="wrong-bar">
+                            {% set bar_class = 'fill-danger' if wq.wrong_pct > 50 else ('fill-warning' if wq.wrong_pct > 20 else 'fill-success') %}
+                            <div class="wrong-bar-fill {{ bar_class }}" style="width: {{ wq.wrong_pct }}%;"></div>
+                            <div class="wrong-bar-label">{{ wq.wrong_pct }}%</div>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state" style="padding: 30px;">
+            <div class="empty-icon">📭</div>
+            <p>Chưa có dữ liệu câu hỏi sai. Sinh viên cần làm bài trước.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ══════════════════ STUDENT PROGRESS ══════════════════ -->
+<div class="card">
+    <div class="card-header">
+        <h3>👥 Tiến Độ Sinh Viên</h3>
+        <span class="badge">{{ student_progress|length }} sinh viên</span>
+    </div>
+    <div class="card-body">
+        {% if student_progress %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Sinh viên</th>
+                    <th style="width:130px;">Bài tập</th>
+                    <th style="width:170px;">Tiến độ</th>
+                    <th style="width:80px;">Điểm TB</th>
+                    <th>Lỗ hổng còn yếu</th>
+                    <th style="width:80px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sp in student_progress %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('analytics.student_detail', course_id=course.id, student_id=sp.id) }}"
+                           class="student-link">{{ sp.name }}</a>
+                        <br><span class="muted">{{ sp.email }}</span>
+                    </td>
+                    <td>{{ sp.assignments_done }} / {{ sp.total_assignments }}</td>
+                    <td>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div class="progress-bar-bg" style="flex:1;">
+                                {% set prog_class = 'progress-green' if sp.progress_pct >= 70 else ('progress-orange' if sp.progress_pct >= 40 else 'progress-red') %}
+                                <div class="progress-bar-fill {{ prog_class }}" style="width: {{ sp.progress_pct }}%;"></div>
+                            </div>
+                            <span style="font-size:12px; font-weight:600; min-width:35px;">{{ sp.progress_pct }}%</span>
+                        </div>
+                    </td>
+                    <td>
+                        {% if sp.avg_score >= 7 %}
+                        <span class="score-badge score-high">{{ sp.avg_score }}</span>
+                        {% elif sp.avg_score >= 5 %}
+                        <span class="score-badge score-medium">{{ sp.avg_score }}</span>
+                        {% else %}
+                        <span class="score-badge score-low">{{ sp.avg_score }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% for g in sp.weak_gaps %}
+                        <span class="gap-chip-sm">{{ g[:20] }}</span>
+                        {% else %}
+                        <span class="muted">—</span>
+                        {% endfor %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('analytics.student_detail', course_id=course.id, student_id=sp.id) }}"
+                           class="btn btn-sm">Chi tiết</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state" style="padding: 30px;">
+            <div class="empty-icon">👥</div>
+            <p>Chưa có sinh viên nào đăng ký khóa học này.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ══════════════════ ASSIGNMENT DETAILS TABLE ══════════════════ -->
+{% if assignment_stats %}
+<div class="card">
+    <div class="card-header">
+        <h3>📋 Chi Tiết Bài Tập</h3>
+    </div>
+    <div class="card-body">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Bài tập</th>
+                    <th>Số câu</th>
+                    <th>Đã nộp</th>
+                    <th style="width:150px;">Hoàn thành</th>
+                    <th>Điểm TB</th>
+                    <th>Ngày tạo</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in assignment_stats %}
+                <tr>
+                    <td><strong>{{ a.title }}</strong></td>
+                    <td>{{ a.total_questions }}</td>
+                    <td>{{ a.total_submissions }} / {{ a.total_students }}</td>
+                    <td>
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <div class="progress-bar-bg" style="flex:1;">
+                                {% set a_class = 'progress-green' if a.completion_pct >= 70 else ('progress-orange' if a.completion_pct >= 40 else 'progress-red') %}
+                                <div class="progress-bar-fill {{ a_class }}" style="width: {{ a.completion_pct }}%;"></div>
+                            </div>
+                            <span style="font-size:12px; font-weight:600;">{{ a.completion_pct }}%</span>
+                        </div>
+                    </td>
+                    <td>
+                        {% if a.avg_score >= 7 %}
+                        <span class="score-badge score-high">{{ a.avg_score }}</span>
+                        {% elif a.avg_score >= 5 %}
+                        <span class="score-badge score-medium">{{ a.avg_score }}</span>
+                        {% else %}
+                        <span class="score-badge score-low">{{ a.avg_score }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="muted">{{ a.created_at.strftime('%d/%m/%Y') if a.created_at else '—' }}</td>
+                    <td>
+                        <a href="{{ url_for('generation.assignment_dashboard', assignment_id=a.id) }}" class="btn btn-sm btn-primary">📈 Chi tiết</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const COLORS = {
+        primary: '#4f46e5',
+        primaryLight: '#818cf8',
+        accent: '#059669',
+        accentLight: '#34d399',
+        danger: '#dc2626',
+        dangerLight: '#f87171',
+        warning: '#d97706',
+        warningLight: '#fbbf24',
+        purple: '#7c3aed',
+        purpleLight: '#a78bfa',
+        cyan: '#0891b2',
+        cyanLight: '#22d3ee',
+        gray: '#9ca3af',
+    };
+
+    // ── 1. Gap Wrong Rate Bar Chart ──────────────────────────────────────
+    const gapCtx = document.getElementById('gapChart');
+    if (gapCtx) {
+        const labels = {{ gap_labels|safe }};
+        const data = {{ gap_wrong_rates|safe }};
+        if (labels.length > 0) {
+            new Chart(gapCtx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Tỷ lệ sai (%)',
+                        data: data,
+                        backgroundColor: data.map(v => v > 50 ? '#fee2e2' : (v > 20 ? '#fef3c7' : '#d1fae5')),
+                        borderColor: data.map(v => v > 50 ? COLORS.danger : (v > 20 ? COLORS.warning : COLORS.accent)),
+                        borderWidth: 2,
+                        borderRadius: 6,
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => ctx.parsed.x + '% sinh viên trả lời sai'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true, max: 100,
+                            ticks: { callback: v => v + '%' },
+                            grid: { color: '#f3f4f6' }
+                        },
+                        y: {
+                            ticks: { font: { size: 11 } },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    // ── 2. Overall Completion Doughnut ───────────────────────────────────
+    const compCtx = document.getElementById('completionChart');
+    if (compCtx) {
+        const completed = {{ total_completed_subs }};
+        const notDone = {{ total_possible }} - completed;
+        new Chart(compCtx.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Đã hoàn thành', 'Chưa làm'],
+                datasets: [{
+                    data: [completed, Math.max(notDone, 0)],
+                    backgroundColor: [COLORS.accent, '#e5e7eb'],
+                    borderWidth: 0,
+                    hoverOffset: 6,
+                }]
+            },
+            options: {
+                responsive: true,
+                cutout: '65%',
+                plugins: {
+                    legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                                const pct = total > 0 ? Math.round(ctx.parsed / total * 100) : 0;
+                                return ctx.label + ': ' + ctx.parsed + ' (' + pct + '%)';
+                            }
+                        }
+                    }
+                }
+            },
+            plugins: [{
+                id: 'centerText',
+                afterDraw(chart) {
+                    const { ctx, chartArea: { width, height, top } } = chart;
+                    ctx.save();
+                    ctx.font = 'bold 28px -apple-system, sans-serif';
+                    ctx.fillStyle = COLORS.accent;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('{{ overall_completion_pct }}%', width / 2, top + height / 2);
+                    ctx.restore();
+                }
+            }]
+        });
+    }
+
+    // ── 3. Score Distribution Histogram ──────────────────────────────────
+    const scoreCtx = document.getElementById('scoreDistChart');
+    if (scoreCtx) {
+        const dist = {{ score_distribution|safe }};
+        const binLabels = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
+        const bgColors = binLabels.map((_, i) => {
+            if (i < 4) return '#fee2e2';
+            if (i < 5) return '#fef3c7';
+            if (i < 7) return '#fef3c7';
+            return '#d1fae5';
+        });
+        const borderColors = binLabels.map((_, i) => {
+            if (i < 4) return COLORS.danger;
+            if (i < 5) return COLORS.warning;
+            if (i < 7) return COLORS.warning;
+            return COLORS.accent;
+        });
+
+        new Chart(scoreCtx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: binLabels,
+                datasets: [{
+                    label: 'Số sinh viên',
+                    data: dist,
+                    backgroundColor: bgColors,
+                    borderColor: borderColors,
+                    borderWidth: 2,
+                    borderRadius: 4,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            title: ctx => 'Điểm ' + ctx[0].label + '/10',
+                            label: ctx => ctx.parsed.y + ' lượt'
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Điểm (thang 10)', font: { size: 11 } },
+                        grid: { display: false }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 },
+                        title: { display: true, text: 'Số lượt', font: { size: 11 } },
+                        grid: { color: '#f3f4f6' }
+                    }
+                }
+            }
+        });
+    }
+
+    // ── 4. Per-Assignment Completion Bar ─────────────────────────────────
+    const asgCtx = document.getElementById('assignmentChart');
+    if (asgCtx) {
+        const asgData = {{ assignment_stats|tojson|safe }};
+        if (asgData.length > 0) {
+            new Chart(asgCtx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: asgData.map(a => a.title.length > 30 ? a.title.substring(0, 28) + '…' : a.title),
+                    datasets: [
+                        {
+                            label: 'Đã nộp',
+                            data: asgData.map(a => a.total_submissions),
+                            backgroundColor: '#d1fae5',
+                            borderColor: COLORS.accent,
+                            borderWidth: 2,
+                            borderRadius: 4,
+                        },
+                        {
+                            label: 'Chưa nộp',
+                            data: asgData.map(a => a.total_students - a.total_submissions),
+                            backgroundColor: '#fee2e2',
+                            borderColor: COLORS.danger,
+                            borderWidth: 2,
+                            borderRadius: 4,
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { padding: 12, usePointStyle: true } }
+                    },
+                    scales: {
+                        x: { stacked: true, grid: { display: false } },
+                        y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: '#f3f4f6' } }
+                    }
+                }
+            });
+        }
+    }
+});
+</script>
+{% endblock %}

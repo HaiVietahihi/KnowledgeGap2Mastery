@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Làm Bài Tập — {{ course.name }}{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{{ url_for('index') }}">Trang chủ</a> /
+    <a href="{{ url_for('courses.detail', course_id=course.id) }}">{{ course.name }}</a> /
+    Làm bài tập
+</div>
+
+<div class="page-header">
+    <h1>📝 Bài Tập: {{ lop.gap.title }}</h1>
+    <span class="badge" style="background-color: var(--primary-color); color: white;">
+        {{ lop.type | upper }}
+    </span>
+</div>
+
+<div class="card" style="margin-top: 20px;">
+    <div class="card-header" style="display: flex; justify-content: space-between;">
+        <h3>Nội dung câu hỏi</h3>
+        {% if submission.status == 'completed' %}
+        <span
+            style="color: green; font-weight: bold; padding: 5px 10px; background-color: #e6f4ea; border-radius: 4px;">
+            ✓ Bạn đã hoàn thành bài tập này vào lúc {{ submission.completed_at.strftime('%H:%M %d/%m/%Y') }}
+        </span>
+        {% else %}
+        <span style="color: gray; font-style: italic;">Chưa hoàn thành</span>
+        {% endif %}
+    </div>
+
+    <div class="card-body">
+        {% if lop.type == "MCQ" %}
+        <div style="font-size: 16px; margin-bottom: 20px;">
+            <strong>Câu hỏi:</strong> {{ content_dict.get('cau_hoi', content_dict.get('question', 'Không rõ câu hỏi'))
+            }}
+        </div>
+
+        <form method="POST">
+            <div style="margin-left: 15px; margin-bottom: 20px;">
+                {% for code, opt_text in content_dict.get('dap_an', content_dict.get('options', {})).items() %}
+                <div style="margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <label style="cursor: pointer; display: flex; align-items: start;">
+                        <input type="radio" name="answer" value="{{ code }}"
+                            style="margin-top: 4px; margin-right: 10px;" required>
+                        <span><strong>{{ code }}.</strong> {{ opt_text }}</span>
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if submission.status != 'completed' %}
+            <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; max-width: 300px;">Nộp bài</button>
+            {% else %}
+            <div
+                style="margin-top: 20px; padding: 15px; background-color: #f8f9fa; border-left: 4px solid var(--accent-color);">
+                <h4>Gợi ý / Giải thích:</h4>
+                <p>{{ content_dict.get('giai_thich', content_dict.get('explanation', 'Không có giải thích')) }}</p>
+            </div>
+            <a href="{{ url_for('courses.detail', course_id=course.id) }}" class="btn btn-outline"
+                style="margin-top:20px;">Quay lại khóa học</a>
+            {% endif %}
+        </form>
+
+        {% else %}
+        <!-- For other types like exercise, summary, essay where it might just be raw text -->
+        <div style="font-size: 16px; margin-bottom: 30px; line-height: 1.6; white-space: pre-wrap;">
+            {{ content_dict.text or lop.content }}
+        </div>
+
+        <form method="POST">
+            {% if submission.status != 'completed' %}
+            <div class="form-group">
+                <label>Viết câu trả lời của bạn vào đây:</label>
+                <textarea name="answer" class="form-control" rows="8" placeholder="Nhập câu trả lời..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary btn-lg">Hoàn thành bài tập</button>
+            {% else %}
+            <a href="{{ url_for('courses.detail', course_id=course.id) }}" class="btn btn-outline">Quay lại khóa học</a>
+            {% endif %}
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

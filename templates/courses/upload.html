@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Upload tài liệu — {{ course.name }}{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{{ url_for('index') }}">Trang chủ</a> /
+    <a href="{{ url_for('courses.detail', course_id=course.id) }}">{{ course.name }}</a> /
+    Upload tài liệu
+</div>
+
+<div class="page-header">
+    <h1>📤 Upload tài liệu</h1>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3>Tải lên file PDF cho khóa {{ course.code }}</h3>
+    </div>
+    <div class="card-body">
+        <div class="info-box">
+            💡 File PDF sẽ được xử lý bằng PageIndex local để xây dựng cây chỉ mục phân cấp.
+            Quá trình xử lý có thể mất 1-5 phút tùy kích thước file.
+        </div>
+
+        <form method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="file">Chọn file PDF <span class="required">*</span></label>
+                <input type="file" id="file" name="file" accept=".pdf" required>
+                <p class="form-hint">Tối đa 50MB. Chỉ chấp nhận file PDF.</p>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="doc_name">Tên tài liệu</label>
+                    <input type="text" id="doc_name" name="doc_name" placeholder="Để trống = dùng tên file">
+                </div>
+                <div class="form-group">
+                    <label for="doc_type">Loại tài liệu</label>
+                    <select id="doc_type" name="doc_type">
+                        <option value="lecture_notes">Bài giảng</option>
+                        <option value="textbook">Giáo trình</option>
+                        <option value="exercise">Bài tập</option>
+                        <option value="exam">Đề thi</option>
+                        <option value="reference">Tài liệu tham khảo</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="btn-row">
+                <button type="submit" class="btn btn-primary btn-lg">📤 Upload</button>
+                <a href="{{ url_for('courses.detail', course_id=course.id) }}" class="btn">← Quay lại</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

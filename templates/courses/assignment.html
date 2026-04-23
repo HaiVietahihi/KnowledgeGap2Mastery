@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}{{ assignment.title }} — {{ course.name }}{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{{ url_for('index') }}">Trang chủ</a> /
+    <a href="{{ url_for('courses.detail', course_id=course.id) }}">{{ course.name }}</a> /
+    Bài tập: {{ assignment.title }}
+</div>
+
+<div class="page-header">
+    <h1>📝 {{ assignment.title }}</h1>
+</div>
+
+{% if submission and submission.status == 'completed' %}
+<div class="alert alert-success" style="margin-bottom: 20px;">
+    <strong>✅ Đã hoàn thành!</strong> Điểm của bạn: <strong style="font-size: 1.2em;">{{ submission.score }}</strong>. Dưới đây là kết quả chi tiết.
+</div>
+{% endif %}
+
+<form method="POST" class="card">
+    <div class="card-body">
+        
+        {% for q_item in questions %}
+        {% set outer_idx = loop.index0 %}
+        {% set q = q_item.q_data if q_item.q_data is defined else (q_item.lop if q_item.lop is defined else q_item) %}
+        <div class="question-card" style="border: 1px solid #ddd; padding: 20px; margin-bottom: 20px; border-radius: 8px;">
+            <h3 style="margin-top: 0;">Câu {{ loop.index }}: {{ q.get('cau_hoi', '') }}</h3>
+            
+            {% if q.get('dap_an') %}
+            <div class="options-list" style="margin-top: 15px;">
+                {% for key, val in q.dap_an.items() %}
+                
+                {% set is_selected = false %}
+                {% set is_correct = (key == q.get('dap_an_dung')) %}
+                
+                {% if submission and submission.status == 'completed' %}
+                    {% set student_ans = student_answers.get(outer_idx | string) %}
+                    {% set is_selected = (student_ans == key) %}
+                {% endif %}
+                
+                {% set bg_color = '#fafafa' %}
+                {% set border_color = '#eee' %}
+                {% if submission and submission.status == 'completed' %}
+                    {% if is_selected and is_correct %}
+                        {% set bg_color = '#d4edda' %}
+                        {% set border_color = '#c3e6cb' %}
+                    {% elif is_selected and not is_correct %}
+                        {% set bg_color = '#f8d7da' %}
+                        {% set border_color = '#f5c6cb' %}
+                    {% elif not is_selected and is_correct %}
+                        {% set bg_color = '#e2e3e5' %}
+                        {% set border_color = '#d6d8db' %}
+                    {% endif %}
+                {% endif %}
+                
+                <label style="display: block; padding: 10px; margin-bottom: 8px; border-radius: 4px; cursor: pointer; border: 1px solid {{ border_color }}; background-color: {{ bg_color }};">
+                    <input type="radio" name="q_{{ outer_idx }}" value="{{ key }}" 
+                        {% if is_selected %}checked{% endif %} 
+                        {% if submission and submission.status == 'completed' %}disabled{% endif %}
+                        style="margin-right: 10px; transform: scale(1.2);">
+                    <strong>{{ key }}.</strong> {{ val }}
+                    
+                    {% if submission and submission.status == 'completed' %}
+                        {% if is_selected and is_correct %}<span style="color: green; margin-left: 10px; font-weight: bold;">(Lựa chọn của bạn - Đúng)</span>{% endif %}
+                        {% if is_selected and not is_correct %}<span style="color: red; margin-left: 10px; font-weight: bold;">(Lựa chọn của bạn - Sai)</span>{% endif %}
+                        {% if not is_selected and is_correct %}<span style="color: #666; margin-left: 10px; font-weight: bold;">(Đáp án đúng)</span>{% endif %}
+                    {% endif %}
+                </label>
+                {% endfor %}
+            </div>
+            
+            {% if submission and submission.status == 'completed' and q.get('giai_thich') %}
+            <div style="margin-top: 15px; padding: 15px; background-color: #f8f9fa; border-radius: 4px; border-left: 4px solid #17a2b8;">
+                <strong style="color: #17a2b8;">💡 Giải thích:</strong><br>
+                {{ q.get('giai_thich') }}
+            </div>
+            {% endif %}
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="alert alert-warning">Bài tập này không có nội dung trắc nghiệm để làm.</div>
+        {% endfor %}
+        
+        {% if not submission or submission.status != 'completed' %}
+        <div style="margin-top: 20px;">
+            <button type="submit" class="btn btn-primary" style="padding: 10px 30px; font-size: 16px;">Nộp Bài</button>
+        </div>
+        {% else %}
+        <div style="margin-top: 20px;">
+            <a href="{{ url_for('courses.detail', course_id=course.id) }}" class="btn btn-outline">Quay lại khóa học</a>
+        </div>
+        {% endif %}
+    </div>
+</form>
+{% endblock %}

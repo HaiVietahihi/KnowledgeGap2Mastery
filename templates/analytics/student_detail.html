@@ -1,0 +1,343 @@
+{% extends "base.html" %}
+{% block title %}👤 {{ student.name }} — Analytics{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    /* ── Student Header ── */
+    .student-header {
+        background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        border-radius: 12px;
+        padding: 28px;
+        color: #fff;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        flex-wrap: wrap;
+    }
+    .student-avatar {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background: rgba(255,255,255,.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+    .student-info h2 {
+        font-size: 22px;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+    .student-info p {
+        font-size: 14px;
+        opacity: .8;
+    }
+    .student-stats {
+        margin-left: auto;
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+    .student-stat {
+        text-align: center;
+    }
+    .student-stat .stat-val {
+        font-size: 28px;
+        font-weight: 800;
+    }
+    .student-stat .stat-lbl {
+        font-size: 12px;
+        opacity: .7;
+    }
+
+    /* ── Gap Performance Card ── */
+    .gap-perf-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--gray-100);
+    }
+    .gap-perf-item:last-child {
+        border-bottom: none;
+    }
+    .gap-perf-title {
+        flex: 1;
+        font-size: 14px;
+        font-weight: 500;
+    }
+    .gap-perf-bar {
+        width: 120px;
+        height: 8px;
+        background: var(--gray-100);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    .gap-perf-fill {
+        height: 100%;
+        border-radius: 4px;
+    }
+    .gap-perf-pct {
+        font-size: 13px;
+        font-weight: 700;
+        min-width: 40px;
+        text-align: right;
+    }
+    .gap-status-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 600;
+        min-width: 60px;
+        text-align: center;
+    }
+    .gap-good   { background: #d1fae5; color: #059669; }
+    .gap-medium { background: #fef3c7; color: #92400e; }
+    .gap-weak   { background: #fee2e2; color: #dc2626; }
+
+    /* ── Chart area ── */
+    .chart-card {
+        background: var(--white);
+        border: 1px solid var(--gray-200);
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: var(--shadow);
+        margin-bottom: 20px;
+    }
+    .chart-card h4 {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--gray-600);
+        margin-bottom: 16px;
+    }
+
+    /* ── Wrong answer detail ── */
+    .wrong-detail {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 8px;
+        padding: 10px 14px;
+        margin-top: 6px;
+        font-size: 13px;
+    }
+    .wrong-detail .wrong-label {
+        color: #dc2626;
+        font-weight: 600;
+    }
+    .wrong-detail .correct-label {
+        color: #059669;
+        font-weight: 600;
+    }
+
+    /* ── Score badge ── */
+    .score-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 700;
+    }
+    .score-high   { background: #d1fae5; color: #059669; }
+    .score-medium { background: #fef3c7; color: #92400e; }
+    .score-low    { background: #fee2e2; color: #dc2626; }
+
+    .two-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+    @media (max-width: 800px) {
+        .two-col { grid-template-columns: 1fr; }
+        .student-stats { margin-left: 0; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{{ url_for('index') }}">Trang chủ</a> /
+    <a href="{{ url_for('courses.detail', course_id=course.id) }}">{{ course.name }}</a> /
+    <a href="{{ url_for('analytics.dashboard', course_id=course.id) }}">Analytics</a> /
+    {{ student.name }}
+</div>
+
+<!-- ── Student Header ── -->
+<div class="student-header">
+    <div class="student-avatar">{{ student.name[0] }}</div>
+    <div class="student-info">
+        <h2>{{ student.name }}</h2>
+        <p>{{ student.email }}</p>
+    </div>
+    <div class="student-stats">
+        <div class="student-stat">
+            <div class="stat-val">{{ total_done }}/{{ total_assignments }}</div>
+            <div class="stat-lbl">Bài tập</div>
+        </div>
+        <div class="student-stat">
+            <div class="stat-val">{{ avg_score }}</div>
+            <div class="stat-lbl">Điểm TB / 10</div>
+        </div>
+        <div class="student-stat">
+            <div class="stat-val">{{ (total_done / total_assignments * 100)|round|int if total_assignments > 0 else 0 }}%</div>
+            <div class="stat-lbl">Tiến độ</div>
+        </div>
+    </div>
+</div>
+
+<div class="two-col">
+    <!-- ── Gap Radar Chart ── -->
+    <div class="chart-card">
+        <h4>📊 Năng Lực Theo Lỗ Hổng Kiến Thức</h4>
+        {% if gap_summary %}
+        <div style="max-height: 280px;">
+            <canvas id="gapRadar"></canvas>
+        </div>
+        {% else %}
+        <p class="muted" style="text-align:center; padding: 40px;">Chưa có dữ liệu đánh giá.</p>
+        {% endif %}
+    </div>
+
+    <!-- ── Gap Performance List ── -->
+    <div class="chart-card">
+        <h4>📋 Chi Tiết Từng Lỗ Hổng</h4>
+        {% if gap_summary %}
+        {% for g in gap_summary %}
+        <div class="gap-perf-item">
+            <div class="gap-perf-title">{{ g.title[:35] }}{{ '…' if g.title|length > 35 else '' }}</div>
+            <div class="gap-perf-bar">
+                {% set fill_color = '#059669' if g.accuracy >= 70 else ('#d97706' if g.accuracy >= 40 else '#dc2626') %}
+                <div class="gap-perf-fill" style="width: {{ g.accuracy }}%; background: {{ fill_color }};"></div>
+            </div>
+            <div class="gap-perf-pct" style="color: {{ fill_color }};">{{ g.accuracy }}%</div>
+            <span class="gap-status-badge {{ 'gap-good' if g.status == 'Tốt' else ('gap-medium' if g.status == 'Cần cải thiện' else 'gap-weak') }}">{{ g.status }}</span>
+        </div>
+        {% endfor %}
+        {% else %}
+        <p class="muted" style="text-align:center; padding: 40px;">Chưa có dữ liệu.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ── Assignments Table ── -->
+<div class="card">
+    <div class="card-header">
+        <h3>📝 Kết Quả Từng Bài Tập</h3>
+    </div>
+    <div class="card-body">
+        {% if student_assignments %}
+        {% for a in student_assignments %}
+        <div style="padding: 14px 0; border-bottom: 1px solid var(--gray-100); {% if loop.last %}border-bottom:none;{% endif %}">
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <strong style="flex:1;">{{ a.title }}</strong>
+                {% if a.status == 'Đã hoàn thành' %}
+                    <span class="status-badge status-completed">✓ {{ a.status }}</span>
+                    {% if a.score_val is not none %}
+                        {% if a.score_val >= 7 %}
+                        <span class="score-badge score-high">{{ a.score }} ({{ a.score_val }}đ)</span>
+                        {% elif a.score_val >= 5 %}
+                        <span class="score-badge score-medium">{{ a.score }} ({{ a.score_val }}đ)</span>
+                        {% else %}
+                        <span class="score-badge score-low">{{ a.score }} ({{ a.score_val }}đ)</span>
+                        {% endif %}
+                    {% endif %}
+                    {% if a.completed_at %}
+                    <span class="muted">{{ a.completed_at.strftime('%d/%m/%Y %H:%M') }}</span>
+                    {% endif %}
+                {% else %}
+                    <span class="status-badge status-processing">⏳ {{ a.status }}</span>
+                {% endif %}
+            </div>
+
+            {% if a.wrong_questions %}
+            <div style="margin-top: 10px;">
+                <span style="font-size:13px; font-weight:600; color: #dc2626;">⚠️ {{ a.wrong_questions|length }} câu sai / {{ a.total_questions }} câu:</span>
+                {% for wq in a.wrong_questions %}
+                <div class="wrong-detail">
+                    <div><strong>Câu {{ wq.index }}:</strong> {{ wq.question[:100] }}{{ '…' if wq.question|length > 100 else '' }}</div>
+                    <div style="margin-top:4px;">
+                        <span class="wrong-label">Trả lời: {{ wq.student_answer }}</span>
+                        &nbsp;·&nbsp;
+                        <span class="correct-label">Đáp án đúng: {{ wq.correct_answer }}</span>
+                        &nbsp;·&nbsp;
+                        <span class="muted">Lỗ hổng: {{ wq.gap }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="empty-state" style="padding: 30px;">
+            <p>Chưa có bài tập nào trong khóa học này.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div style="margin-top: 20px;">
+    <a href="{{ url_for('analytics.dashboard', course_id=course.id) }}" class="btn">← Quay lại Dashboard Analytics</a>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const radarCtx = document.getElementById('gapRadar');
+    if (radarCtx) {
+        const labels = {{ gap_labels|safe }};
+        const data = {{ gap_accuracies|safe }};
+        if (labels.length > 0) {
+            new Chart(radarCtx.getContext('2d'), {
+                type: labels.length >= 3 ? 'radar' : 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Độ chính xác (%)',
+                        data: data,
+                        backgroundColor: 'rgba(79, 70, 229, 0.15)',
+                        borderColor: '#4f46e5',
+                        borderWidth: 2,
+                        pointBackgroundColor: data.map(v => v >= 70 ? '#059669' : (v >= 40 ? '#d97706' : '#dc2626')),
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        fill: true,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => 'Chính xác: ' + ctx.parsed.r + '%'
+                            }
+                        }
+                    },
+                    scales: labels.length >= 3 ? {
+                        r: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: { stepSize: 20, font: { size: 10 } },
+                            pointLabels: { font: { size: 11 } },
+                            grid: { color: '#e5e7eb' }
+                        }
+                    } : {
+                        y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+    }
+});
+</script>
+{% endblock %}

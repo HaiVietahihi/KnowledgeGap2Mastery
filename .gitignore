@@ -1,0 +1,39 @@
+# ── PageIndex (thư viện local — embedded git repo, cần copy thủ công khi deploy) ──
+PageIndex/
+
+# ── Environment variables (QUAN TRỌNG: không bao giờ commit) ──
+.env
+
+# ── Python virtual environments và cache ──
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.pyo
+
+# ── IDE configuration ──
+.idea/
+.vscode/
+
+# ── Dữ liệu upload và sinh ra (không commit dữ liệu thật) ──
+uploads/
+data/
+logs/
+
+# ── Database thật (sẽ tự tạo khi khởi động) ──
+kg2m.db
+
+# ── File tài liệu PDF, DOCX (dữ liệu demo cục bộ) ──
+*.pdf
+*.docx
+
+# ── File output tạm và test ──
+output_*.json
+temp_*.txt
+pyright_output.txt
+test_*.py
+
+# ── OS generated ──
+.DS_Store
+Thumbs.db

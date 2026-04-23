@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% block title %}{{ course.name }} — KG2M{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{{ url_for('index') }}">Trang chủ</a> / {{ course.name }}
+</div>
+
+<div class="page-header">
+    <h1>🎓 {{ course.name }} <span class="badge">{{ course.code }}</span></h1>
+    <div class="header-actions">
+        {% if current_user.role == 'instructor' %}
+        <a href="{{ url_for('analytics.dashboard', course_id=course.id) }}" class="btn" style="background:#7c3aed;color:#fff;border-color:#7c3aed;">📊 Analytics</a>
+        <a href="{{ url_for('courses.upload', course_id=course.id) }}" class="btn btn-primary">📤 Upload tài liệu</a>
+        <a href="{{ url_for('discovery.run', course_id=course.id) }}" class="btn">🔍 Phát hiện lỗ hổng</a>
+        <a href="{{ url_for('generation.dashboard', course_id=course.id) }}" class="btn btn-accent">✨ Dashboard Cơ hội
+            học tập</a>
+        {% elif current_user.role == 'student' %}
+        {% if is_enrolled %}
+        <a href="{{ url_for('courses.ask_question', course_id=course.id) }}" class="btn btn-primary">❓ Đặt câu hỏi</a>
+        {% else %}
+        <form action="{{ url_for('courses.enroll', course_id=course.id) }}" method="POST" style="display:inline;">
+            <button type="submit" class="btn btn-accent">Thêm vào khóa học của tôi</button>
+        </form>
+        {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3>📝 Mô tả khóa học</h3>
+    </div>
+    <div class="card-body">
+        <p>{{ course.description or 'Chưa có mô tả.' }}</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3>📄 Tài liệu đã nạp ({{ documents|length }})</h3>
+        {% if current_user.role == 'instructor' %}
+        <a href="{{ url_for('courses.upload', course_id=course.id) }}" class="btn btn-sm btn-primary">+ Thêm</a>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        {% if documents %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Tên tài liệu</th>
+                    <th>Loại</th>
+                    <th>Trạng thái</th>
+                    <th>Số trang</th>
+                    <th>Ngày upload</th>
+                    {% if current_user.role == 'instructor' %}
+                    <th>Hành động</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for doc in documents %}
+                <tr data-doc-id="{{ doc.doc_id }}" data-status="{{ doc.status }}">
+                    <td><strong>{{ doc.doc_name }}</strong><br><span class="muted">{{ doc.file_name }}</span></td>
+                    <td><span class="badge">{{ doc.doc_type }}</span></td>
+                    <td>
+                        {% if doc.status == 'completed' %}
+                        <span class="status-badge status-completed">✓ Hoàn tất</span>
+                        {% elif doc.status == 'processing' %}
+                        <span class="status-badge status-processing">⏳ Đang xử lý...</span>
+                        {% else %}
+                        <span class="status-badge status-failed">✕ Lỗi</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ doc.get('page_count', '—') }}</td>
+                    <td class="muted">{{ doc.get('uploaded_at', '—') }}</td>
+                    {% if current_user.role == 'instructor' %}
+                    <td>
+                        <form action="{{ url_for('courses.delete_document', course_id=course.id, doc_id=doc.doc_id) }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn xóa tài liệu này không?');">
+                            <button type="submit" class="btn btn-sm btn-outline" style="color: red; border-color: red;">Xóa</button>
+                        </form>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state" style="padding: 30px;">
+            <div class="empty-icon">📭</div>
+            <h3>Chưa có tài liệu</h3>
+            <p>Upload file PDF để bắt đầu xây dựng cơ sở tri thức cho khóa học.</p>
+            <a href="{{ url_for('courses.upload', course_id=course.id) }}" class="btn btn-primary">📤 Upload ngay</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if current_user.role == 'student' and is_enrolled %}
+<div class="card">
+    <div class="card-header">
+        <h3>📝 Bài tập về nhà</h3>
+    </div>
+    <div class="card-body">
+        {% if assignments %}
+        <table class="table" style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead>
+                <tr>
+                    <th style="border-bottom: 1px solid #ddd; padding: 10px;">Tên bài tập</th>
+                    <th style="border-bottom: 1px solid #ddd; padding: 10px;">Trạng thái</th>
+                    <th style="border-bottom: 1px solid #ddd; padding: 10px;">Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in assignments %}
+                <tr>
+                    <td style="padding: 10px;"><strong>{{ a.title }}</strong></td>
+                    <td style="padding: 10px;">
+                        {% if submissions[a.id] and submissions[a.id].status == 'completed' %}
+                        <span style="color: green; font-weight: bold;">✓ Đã làm ({{ submissions[a.id].score }})</span>
+                        {% else %}
+                        <span style="color: gray;">Chưa làm</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 10px;">
+                        {% if submissions[a.id] and submissions[a.id].status == 'completed' %}
+                        <a href="{{ url_for('courses.assignment', course_id=course.id, assignment_id=a.id) }}"
+                            class="btn btn-sm btn-outline">Xem lại</a>
+                        {% else %}
+                        <a href="{{ url_for('courses.assignment', course_id=course.id, assignment_id=a.id) }}"
+                            class="btn btn-sm btn-accent">Làm bài</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state" style="padding: 20px;">
+            <p>Chưa có bài tập nào được giao cho khóa học này.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+{% if current_user.role == 'instructor' %}
+<div class="card">
+    <div class="card-header">
+        <h3>❓ Câu hỏi sinh viên chờ xử lý</h3>
+    </div>
+    <div class="card-body">
+        {% if questions %}
+        <ul>
+            {% for q in questions %}
+            {% if q.status == 'pending' %}
+            <li style="margin-bottom: 8px;"><strong>Sinh viên ID {{ q.student_id }}:</strong> {{ q.content }} <span
+                    class="badge" style="background:#FF9800;color:#fff;">Chưa xử lý</span></li>
+            {% else %}
+            <li style="margin-bottom: 8px;" class="muted"><strong>Sinh viên ID {{ q.student_id }}:</strong> {{ q.content
+                }} <span class="badge" style="background:#4CAF50;color:#fff;">Đã xử lý</span></li>
+            {% endif %}
+            {% endfor %}
+        </ul>
+        <div style="margin-top: 10px;">
+            <a href="{{ url_for('discovery.run', course_id=course.id) }}" class="btn btn-sm btn-primary">Chạy AI phân
+                tích các câu hỏi chờ</a>
+        </div>
+        {% else %}
+        <p class="muted">Chưa có câu hỏi nào từ sinh viên.</p>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<script>
+    (function () {
+        // Tìm tất cả documents đang processing
+        const rows = document.querySelectorAll('tr[data-status="processing"]');
+        if (rows.length === 0) return;
+
+        const docIds = Array.from(rows).map(r => r.dataset.docId);
+
+        function pollStatus() {
+            docIds.forEach(docId => {
+                fetch('/api/upload-status/' + docId)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.status === 'completed' || data.status === 'failed' || data.status === 'error') {
+                            // Reload trang khi có thay đổi status
+                            location.reload();
+                        }
+                    })
+                    .catch(() => { });
+            });
+        }
+
+        // Poll mỗi 5 giây
+        setInterval(pollStatus, 5000);
+    })();
+</script>
+{% endblock %}

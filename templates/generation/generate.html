@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Sinh LOP — {{ course.name }}{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{{ url_for('index') }}">Trang chủ</a> /
+    <a href="{{ url_for('courses.detail', course_id=course.id) }}">{{ course.name }}</a> /
+    Sinh Learning Opportunity
+</div>
+
+<div class="page-header">
+    <h1>✨ Sinh cơ hội học tập (LOP)</h1>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3>Cấu hình LOP Generation</h3>
+    </div>
+    <div class="card-body">
+        <div class="info-box">
+            💡 Hệ thống sẽ dùng <strong>CoT (Chain-of-Thought)</strong> + <strong>Self-Refine</strong> +
+            <strong>Local RAG</strong>
+            để sinh nội dung chất lượng cao, phù hợp với lỗ hổng kiến thức.
+        </div>
+
+        <form method="POST">
+            <div class="form-group">
+                <label for="knowledge_gap">Lỗ hổng kiến thức cần xử lý <span class="required">*</span></label>
+                <input type="text" id="knowledge_gap" name="knowledge_gap" value="{{ request.args.get('gap', '') }}"
+                    list="gap-list" autocomplete="off" placeholder="Chọn từ danh sách lỗ hổng hoặc nhập mới..."
+                    required>
+                <datalist id="gap-list">
+                    {% for g in gaps %}
+                    <option value="{{ g.title }}">
+                        {% endfor %}
+                </datalist>
+            </div>
+
+            <div class="form-group">
+                <label for="sample_posts">Bài đăng mẫu (không bắt buộc)</label>
+                <textarea id="sample_posts" name="sample_posts" rows="5"
+                    placeholder="Dán các bài đăng sinh viên liên quan, mỗi bài cách nhau bằng 1 dòng trống."></textarea>
+                <p class="form-hint">Giúp AI hiểu rõ hơn ngữ cảnh lỗ hổng.</p>
+            </div>
+
+            <div class="form-row-3">
+                <input type="hidden" name="lop_type" value="MCQ">
+                <div class="form-group">
+                    <label for="bloom_level">Cấp độ Bloom</label>
+                    <select id="bloom_level" name="bloom_level">
+                        <option value="nho">Nhớ (Bloom 1)</option>
+                        <option value="hieu">Hiểu (Bloom 2)</option>
+                        <option value="ap_dung" selected>Áp dụng (Bloom 3)</option>
+                        <option value="phan_tich">Phân tích (Bloom 4)</option>
+                        <option value="danh_gia">Đánh giá (Bloom 5-6)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="difficulty">Độ khó</label>
+                    <select id="difficulty" name="difficulty">
+                        <option value="de">🟢 Dễ</option>
+                        <option value="trung_binh" selected>🟡 Trung bình</option>
+                        <option value="kho">🔴 Khó</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="num_questions">Số lượng câu hỏi sinh ra</label>
+                    <input type="number" id="num_questions" name="num_questions" value="1" min="1" max="5">
+                </div>
+            </div>
+
+            <div class="btn-row">
+                <button type="submit" class="btn btn-accent btn-lg">✨ Sinh LOP</button>
+                <a href="{{ url_for('courses.detail', course_id=course.id) }}" class="btn">← Quay lại</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
