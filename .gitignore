@@ -1,5 +1,3 @@
-# ── PageIndex (thư viện local — embedded git repo, cần copy thủ công khi deploy) ──
-PageIndex/
 
 # ── Environment variables (QUAN TRỌNG: không bao giờ commit) ──
 .env
