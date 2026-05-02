@@ -9,10 +9,10 @@
 </div>
 
 <div class="page-header">
-    <h1>📊 Kết quả phát hiện lỗ hổng</h1>
+    <h1>Kết quả phát hiện lỗ hổng</h1>
     <div class="header-actions">
-        <a href="{{ url_for('discovery.run', course_id=course.id) }}" class="btn">🔍 Phân tích lại</a>
-        <a href="{{ url_for('refinement.review', course_id=course.id) }}" class="btn btn-accent">👨‍🏫 Chuyên gia
+        <a href="{{ url_for('discovery.run', course_id=course.id) }}" class="btn">Phân tích lại</a>
+        <a href="{{ url_for('refinement.review', course_id=course.id) }}" class="btn btn-accent">Chuyên gia
             duyệt</a>
     </div>
 </div>
@@ -40,7 +40,7 @@
 
 <div class="card" style="margin-bottom: 20px;">
     <div class="card-header">
-        <h3>🎯 Lỗ hổng kiến thức đã phát hiện ({{ result.knowledge_gaps|length }})</h3>
+        <h3>Lỗ hổng kiến thức đã phát hiện ({{ result.knowledge_gaps|length }})</h3>
     </div>
     <div class="card-body">
         {% for gap in result.knowledge_gaps %}
@@ -70,7 +70,7 @@
             </div>
             {% endif %}
             <div class="card-footer">
-                <a href="{{ url_for('refinement.review', course_id=course.id) }}" class="btn btn-accent btn-sm">👨‍🏫
+                <a href="{{ url_for('refinement.review', course_id=course.id) }}" class="btn btn-accent btn-sm">
                     Duyệt & Sinh LOP</a>
             </div>
         </div>
@@ -82,12 +82,12 @@
 <div class="alert alert-error">
     ❌ <strong>Lỗi:</strong> {{ task.error }}
 </div>
-<a href="{{ url_for('discovery.run', course_id=course.id) }}" class="btn btn-primary">🔁 Thử lại</a>
+<a href="{{ url_for('discovery.run', course_id=course.id) }}" class="btn btn-primary">Thử lại</a>
 
 {% else %}
 <div class="alert alert-warning">
     ⚠️ Không tìm thấy task. Vui lòng chạy phân tích lại.
 </div>
-<a href="{{ url_for('discovery.run', course_id=course.id) }}" class="btn btn-primary">🔍 Phân tích lại</a>
+<a href="{{ url_for('discovery.run', course_id=course.id) }}" class="btn btn-primary">Phân tích lại</a>
 {% endif %}
 {% endblock %}

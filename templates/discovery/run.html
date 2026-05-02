@@ -9,7 +9,7 @@
 </div>
 
 <div class="page-header">
-    <h1>🔍 Phát hiện lỗ hổng kiến thức</h1>
+    <h1>Phát hiện lỗ hổng kiến thức</h1>
 </div>
 
 <div class="card">
@@ -18,7 +18,7 @@
     </div>
     <div class="card-body">
         <div class="info-box">
-            💡 Hệ thống sẽ tự động tổng hợp tất cả các câu hỏi <strong>Chưa xử lý</strong> của sinh viên trong khóa học
+            Hệ thống sẽ tự động tổng hợp tất cả các câu hỏi <strong>Chưa xử lý</strong> của sinh viên trong khóa học
             này và dùng AI để phân tích ra các lỗ hổng kiến thức chung.
         </div>
 
@@ -27,7 +27,7 @@
         <div style="margin: 20px 0;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
                 <h4 style="margin: 0; font-size: 15px; color: var(--text-secondary);">
-                    📋 Các câu hỏi sẽ được đưa vào phân tích
+                    Các câu hỏi sẽ được đưa vào phân tích
                 </h4>
                 <span style="
                     background: linear-gradient(135deg, #4f46e5, #7c3aed);
@@ -103,11 +103,11 @@
 
         <form method="POST">
             <div class="info-box" style="margin-top: 4px; background: rgba(34,197,94,0.08); border-left: 4px solid #22c55e;">
-                📄 Hệ thống sẽ sử dụng tài liệu đã upload (RAG) để phân tích chính xác hơn.
+                Hệ thống sẽ sử dụng tài liệu đã upload (RAG) để phân tích chính xác hơn.
                 Số danh mục lỗ hổng sẽ do AI tự quyết định dựa trên nội dung câu hỏi.
             </div>
             <div class="btn-row" style="margin-top: 16px;">
-                <button type="submit" class="btn btn-primary btn-lg">🔍 Bắt đầu phân tích</button>
+                <button type="submit" class="btn btn-primary btn-lg">Bắt đầu phân tích</button>
                 <a href="{{ url_for('courses.detail', course_id=course.id) }}" class="btn">← Quay lại</a>
             </div>
         </form>
@@ -122,7 +122,7 @@
             border: 1px dashed rgba(255,255,255,0.12);
             border-radius: 12px;
         ">
-            <div style="font-size: 40px; margin-bottom: 12px;">📭</div>
+            <div style="font-size: 40px; margin-bottom: 12px;"></div>
             <h4 style="margin: 0 0 8px; color: #9ca3af;">Không có câu hỏi nào cần phân tích</h4>
             <p style="margin: 0; font-size: 14px; color: #6b7280;">
                 Chưa có câu hỏi mới từ sinh viên hoặc tất cả câu hỏi đã được xử lý.

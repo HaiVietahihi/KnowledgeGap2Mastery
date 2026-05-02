@@ -9,7 +9,7 @@
 </div>
 
 <div class="page-header">
-    <h1>✨ Sinh cơ hội học tập (LOP)</h1>
+    <h1>Sinh cơ hội học tập (LOP)</h1>
 </div>
 
 <div class="card">
@@ -18,7 +18,7 @@
     </div>
     <div class="card-body">
         <div class="info-box">
-            💡 Hệ thống sẽ dùng <strong>CoT (Chain-of-Thought)</strong> + <strong>Self-Refine</strong> +
+            Hệ thống sẽ dùng <strong>CoT (Chain-of-Thought)</strong> + <strong>Self-Refine</strong> +
             <strong>Local RAG</strong>
             để sinh nội dung chất lượng cao, phù hợp với lỗ hổng kiến thức.
         </div>
@@ -31,9 +31,11 @@
                     required>
                 <datalist id="gap-list">
                     {% for g in gaps %}
-                    <option value="{{ g.title }}">
-                        {% endfor %}
+                    <option value="{{ g.title }}" data-gap-id="{{ g.id }}">
+                    {% endfor %}
                 </datalist>
+                <!-- Hidden field để lưu gap_id khi chọn gap có sẵn -->
+                <input type="hidden" id="gap_id" name="gap_id" value="{{ request.args.get('gap_id', '') }}">
             </div>
 
             <div class="form-group">
@@ -58,9 +60,9 @@
                 <div class="form-group">
                     <label for="difficulty">Độ khó</label>
                     <select id="difficulty" name="difficulty">
-                        <option value="de">🟢 Dễ</option>
-                        <option value="trung_binh" selected>🟡 Trung bình</option>
-                        <option value="kho">🔴 Khó</option>
+                        <option value="de">Dễ</option>
+                        <option value="trung_binh" selected>Trung bình</option>
+                        <option value="kho">Khó</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -70,10 +72,48 @@
             </div>
 
             <div class="btn-row">
-                <button type="submit" class="btn btn-accent btn-lg">✨ Sinh LOP</button>
+                <button type="submit" class="btn btn-accent btn-lg">Sinh LOP</button>
                 <a href="{{ url_for('courses.detail', course_id=course.id) }}" class="btn">← Quay lại</a>
             </div>
         </form>
     </div>
 </div>
+
+<script>
+(function() {
+    // Xây dựng map title -> gap_id từ datalist
+    var gapMap = {};
+    {% for g in gaps %}
+    gapMap[{{ g.title | tojson }}] = {{ g.id | tojson }};
+    {% endfor %}
+
+    var inputEl = document.getElementById('knowledge_gap');
+    var hiddenEl = document.getElementById('gap_id');
+
+    // Khi load trang, nếu đã có giá trị gap từ URL param, set gap_id
+    if (inputEl.value && gapMap[inputEl.value]) {
+        hiddenEl.value = gapMap[inputEl.value];
+    }
+
+    // Khi người dùng thay đổi input (chọn từ datalist hoặc nhập)
+    inputEl.addEventListener('input', function() {
+        var val = inputEl.value.trim();
+        if (gapMap[val]) {
+            hiddenEl.value = gapMap[val];
+        } else {
+            hiddenEl.value = '';
+        }
+    });
+
+    // Backup: change event cho trường hợp chọn từ datalist trên một số browser
+    inputEl.addEventListener('change', function() {
+        var val = inputEl.value.trim();
+        if (gapMap[val]) {
+            hiddenEl.value = gapMap[val];
+        } else {
+            hiddenEl.value = '';
+        }
+    });
+})();
+</script>
 {% endblock %}

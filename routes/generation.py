@@ -33,6 +33,7 @@ def generate(course_id):
 
     if request.method == "POST":
         knowledge_gap = request.form.get("knowledge_gap", "").strip()
+        gap_id = request.form.get("gap_id", "").strip()
         sample_posts_raw = request.form.get("sample_posts", "").strip()
         lop_type = request.form.get("lop_type", "MCQ")
         bloom_level = request.form.get("bloom_level", "ap_dung")
@@ -50,6 +51,9 @@ def generate(course_id):
 
         task_id = f"gen-{uuid.uuid4().hex[:8]}"
         _, _, generator = get_services()
+
+        # Lưu gap_id vào session để dùng khi task hoàn tất
+        session[f"task_gap_id_{task_id}"] = gap_id if gap_id else ""
 
         def do_generate():
             return generator.generate(
@@ -72,42 +76,110 @@ def view(course_id, task_id):
         return r
     course = CourseRepo.get(course_id)
     task = get_task(task_id)
-    # Nếu task đã hoàn tất, lưu kết quả
-    if task.get("status") == "done" and task.get("result"):
-        result_data = task["result"]
-        import json
-        
-        # Save Learning Opportunity to DB
-        from database.models import KnowledgeGap, db
-        from database.repository import LearningOpportunityRepo
-        
-        knowledge_gap_text = result_data.get("metadata", {}).get("knowledge_gap", "")
-        # Find the gap ID
-        gap = KnowledgeGap.query.filter_by(course_id=course_id, title=knowledge_gap_text).first()
-        
-        if gap and "lops" in result_data:
-            # check to see if we already created lops for this task so we don't duplicate on page reload
-            from database.models import LearningOpportunity
-            existing = LearningOpportunity.query.filter_by(gap_id=gap.id).count()
-            if existing == 0:
-                for lop_item in result_data["lops"]:
-                    lop_content = lop_item.get("lop", {})
-                    meta = lop_item.get("metadata", {})
-                    
-                    LearningOpportunityRepo.create(
-                        gap_id=gap.id,
-                        gap_type=meta.get("lop_type", "MCQ"),
-                        content=json.dumps(lop_content, ensure_ascii=False),
-                        bloom_level=meta.get("bloom_level", ""),
-                        difficulty=meta.get("difficulty", "")
-                    )
+    
+    # Kiểm tra đã lưu chưa (để hiển thị trạng thái trên UI)
+    saved_flag_key = f"task_saved_{task_id}"
+    already_saved = session.get(saved_flag_key, False)
 
     return render_template(
         "generation/view.html",
         course=course,
         task_id=task_id,
         task=task,
+        already_saved=already_saved,
     )
+
+
+@generation_bp.route("/<course_id>/save_lops/<task_id>", methods=["POST"])
+def save_selected_lops(course_id, task_id):
+    """Lưu các câu hỏi đã chọn (và có thể đã chỉnh sửa) vào DB."""
+    r = _require_login()
+    if r:
+        return r
+
+    import json
+    from database.models import KnowledgeGap
+    from database.repository import LearningOpportunityRepo, KnowledgeGapRepo
+    
+    course = CourseRepo.get(course_id)
+    if not course:
+        flash("Không tìm thấy khóa học.", "error")
+        return redirect(url_for("index"))
+    
+    task = get_task(task_id)
+    if task.get("status") != "done" or not task.get("result"):
+        flash("Task chưa hoàn tất hoặc không có kết quả.", "error")
+        return redirect(url_for("generation.view", course_id=course_id, task_id=task_id))
+
+    result_data = task["result"]
+    selected_indices = request.form.getlist("selected_lops")
+    
+    if not selected_indices:
+        flash("Vui lòng chọn ít nhất 1 câu hỏi để lưu.", "error")
+        return redirect(url_for("generation.view", course_id=course_id, task_id=task_id))
+
+    # Tìm hoặc tạo gap
+    knowledge_gap_text = result_data.get("metadata", {}).get("knowledge_gap", "")
+    gap = None
+    gap_id_str = session.pop(f"task_gap_id_{task_id}", "")
+    
+    if gap_id_str:
+        try:
+            gap = KnowledgeGap.query.get(int(gap_id_str))
+        except (ValueError, TypeError):
+            pass
+    
+    if not gap and knowledge_gap_text:
+        gap = KnowledgeGap.query.filter_by(
+            course_id=course_id, title=knowledge_gap_text
+        ).first()
+    
+    if not gap and knowledge_gap_text:
+        gap = KnowledgeGapRepo.create(
+            course_id=course_id,
+            title=knowledge_gap_text,
+            description="Được tạo tự động khi sinh LOP"
+        )
+
+    if not gap:
+        flash("Không thể xác định lỗ hổng kiến thức.", "error")
+        return redirect(url_for("generation.view", course_id=course_id, task_id=task_id))
+
+    saved_count = 0
+    lops_list = result_data.get("lops", [])
+    
+    for idx_str in selected_indices:
+        try:
+            idx = int(idx_str)
+            if 0 <= idx < len(lops_list):
+                # Lấy nội dung đã chỉnh sửa từ form (nếu có)
+                edited_json = request.form.get(f"lop_content_{idx}", "")
+                meta = lops_list[idx].get("metadata", {})
+                
+                if edited_json:
+                    try:
+                        lop_content = json.loads(edited_json)
+                    except json.JSONDecodeError:
+                        lop_content = lops_list[idx].get("lop", {})
+                else:
+                    lop_content = lops_list[idx].get("lop", {})
+                
+                LearningOpportunityRepo.create(
+                    gap_id=gap.id,
+                    gap_type=meta.get("lop_type", "MCQ"),
+                    content=json.dumps(lop_content, ensure_ascii=False),
+                    bloom_level=meta.get("bloom_level", ""),
+                    difficulty=meta.get("difficulty", "")
+                )
+                saved_count += 1
+        except (ValueError, IndexError):
+            continue
+
+    # Đánh dấu đã lưu
+    session[f"task_saved_{task_id}"] = True
+    
+    flash(f"Đã lưu {saved_count} câu hỏi vào ngân hàng câu hỏi.", "success")
+    return redirect(url_for("generation.dashboard", course_id=course_id))
 
 
 @generation_bp.route("/dashboard/<course_id>")
@@ -318,3 +390,171 @@ def edit(lop_id):
             
     content_json = json.dumps(json.loads(lop.content), ensure_ascii=False, indent=4) if lop.content else "{}"
     return render_template("generation/edit.html", lop=lop, content_json=content_json, course=lop.gap.course)
+
+
+@generation_bp.route("/question_bank/<course_id>")
+def question_bank(course_id):
+    """Trang ngân hàng câu hỏi — xem, lọc, sửa, xóa câu hỏi."""
+    r = _require_login()
+    if r:
+        return r
+
+    user = g.current_user
+    if user.role != "instructor":
+        flash("Chỉ giảng viên mới có chức năng này.", "error")
+        return redirect(url_for("index"))
+
+    import json
+    from database.models import KnowledgeGap
+    from database.repository import LearningOpportunityRepo
+
+    course = CourseRepo.get(course_id)
+    if not course:
+        flash("Không tìm thấy khóa học.", "error")
+        return redirect(url_for("index"))
+
+    # Filter by gap
+    selected_gap_id = request.args.get("gap_id", type=int)
+
+    gaps = KnowledgeGap.query.filter_by(course_id=course_id).all()
+    all_lops = LearningOpportunityRepo.get_by_course(course_id)
+    mcq_lops = [lop for lop in all_lops if lop.type == "MCQ"]
+
+    if selected_gap_id:
+        mcq_lops = [lop for lop in mcq_lops if lop.gap_id == selected_gap_id]
+
+    # Build structured question data grouped by gap
+    gap_questions_map = {}
+    total_questions = 0
+
+    for lop in mcq_lops:
+        try:
+            parsed = json.loads(lop.content)
+            q_data = parsed
+            if isinstance(parsed, dict) and "lops" in parsed:
+                q_data = parsed["lops"][0] if parsed["lops"] else parsed
+            elif isinstance(parsed, list):
+                q_data = parsed[0] if parsed else {}
+
+            if isinstance(q_data, dict) and "lop" in q_data:
+                q_data = q_data["lop"]
+
+            if not isinstance(q_data, dict) or not q_data.get("cau_hoi"):
+                continue
+
+            gap_title = lop.gap.title
+            gap_id = lop.gap.id
+
+            question_info = {
+                "lop_id": lop.id,
+                "cau_hoi": q_data.get("cau_hoi", ""),
+                "dap_an": q_data.get("dap_an", {}),
+                "dap_an_dung": q_data.get("dap_an_dung", ""),
+                "giai_thich": q_data.get("giai_thich", ""),
+                "bloom_level": lop.bloom_level,
+                "difficulty": lop.difficulty,
+            }
+
+            if gap_id not in gap_questions_map:
+                gap_questions_map[gap_id] = {
+                    "gap_id": gap_id,
+                    "gap_title": gap_title,
+                    "questions": []
+                }
+            gap_questions_map[gap_id]["questions"].append(question_info)
+            total_questions += 1
+        except Exception:
+            continue
+
+    questions_by_gap = list(gap_questions_map.values())
+
+    # Build gap_list with question counts for the filter dropdown
+    gap_count_map = {}
+    for lop in [l for l in LearningOpportunityRepo.get_by_course(course_id) if l.type == "MCQ"]:
+        gap_count_map[lop.gap_id] = gap_count_map.get(lop.gap_id, 0) + 1
+
+    class GapInfo:
+        def __init__(self, gap, q_count):
+            self.id = gap.id
+            self.title = gap.title
+            self.q_count = q_count
+
+    gap_list = [GapInfo(g, gap_count_map.get(g.id, 0)) for g in gaps if gap_count_map.get(g.id, 0) > 0]
+
+    return render_template(
+        "generation/question_bank.html",
+        course=course,
+        questions_by_gap=questions_by_gap,
+        total_questions=total_questions,
+        gap_list=gap_list,
+        selected_gap_id=selected_gap_id,
+    )
+
+
+@generation_bp.route("/question_bank/<course_id>/edit/<int:lop_id>", methods=["POST"])
+def question_bank_edit(course_id, lop_id):
+    """Cập nhật nội dung câu hỏi từ form inline."""
+    r = _require_login()
+    if r:
+        return r
+
+    user = g.current_user
+    if user.role != "instructor":
+        flash("Chỉ giảng viên mới có chức năng này.", "error")
+        return redirect(url_for("index"))
+
+    import json
+    from database.repository import LearningOpportunityRepo
+
+    lop = LearningOpportunityRepo.get(lop_id)
+    if not lop:
+        flash("Không tìm thấy câu hỏi.", "error")
+        return redirect(url_for("generation.question_bank", course_id=course_id))
+
+    # Rebuild JSON from form fields
+    cau_hoi = request.form.get("cau_hoi", "").strip()
+    dap_an_dung = request.form.get("dap_an_dung", "A")
+    giai_thich = request.form.get("giai_thich", "").strip()
+
+    dap_an = {}
+    for key in ["A", "B", "C", "D"]:
+        val = request.form.get(f"dap_an_{key}", "").strip()
+        if val:
+            dap_an[key] = val
+
+    new_content = {
+        "cau_hoi": cau_hoi,
+        "dap_an": dap_an,
+        "dap_an_dung": dap_an_dung,
+        "giai_thich": giai_thich,
+    }
+
+    LearningOpportunityRepo.update_content(
+        lop_id,
+        json.dumps(new_content, ensure_ascii=False)
+    )
+
+    flash("Đã cập nhật câu hỏi thành công.", "success")
+    return redirect(url_for("generation.question_bank", course_id=course_id))
+
+
+@generation_bp.route("/question_bank/<course_id>/delete/<int:lop_id>", methods=["POST"])
+def question_bank_delete(course_id, lop_id):
+    """Xóa câu hỏi khỏi ngân hàng."""
+    r = _require_login()
+    if r:
+        return r
+
+    user = g.current_user
+    if user.role != "instructor":
+        flash("Chỉ giảng viên mới có chức năng này.", "error")
+        return redirect(url_for("index"))
+
+    from database.repository import LearningOpportunityRepo
+
+    if LearningOpportunityRepo.delete(lop_id):
+        flash("Đã xóa câu hỏi.", "success")
+    else:
+        flash("Không tìm thấy câu hỏi.", "error")
+
+    return redirect(url_for("generation.question_bank", course_id=course_id))

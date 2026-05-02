@@ -1,6 +1,6 @@
 """
 KG2M - database/repository.py
-In-memory repositories cho demo — không cần database thật.
+In-memory repositories — không cần database thật.
 """
 
 import hashlib
@@ -156,6 +156,26 @@ class LearningOpportunityRepo:
             lop.is_published = not lop.is_published
             db.session.commit()
         return lop
+
+    @classmethod
+    def update_content(cls, lop_id, content):
+        from database.models import db, LearningOpportunity
+        lop = LearningOpportunity.query.get(lop_id)
+        if lop:
+            lop.content = content
+            db.session.commit()
+        return lop
+
+    @classmethod
+    def delete(cls, lop_id):
+        from database.models import db, LearningOpportunity
+        lop = LearningOpportunity.query.get(lop_id)
+        if lop:
+            db.session.delete(lop)
+            db.session.commit()
+            return True
+        return False
+
 
 class ExerciseSubmissionRepo:
     @classmethod

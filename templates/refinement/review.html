@@ -9,14 +9,14 @@
 </div>
 
 <div class="page-header">
-    <h1>👨‍🏫 Chuyên gia duyệt lỗ hổng kiến thức</h1>
+    <h1>Chuyên gia duyệt lỗ hổng kiến thức</h1>
     <div class="header-actions">
-        <a href="{{ url_for('discovery.run', course_id=course.id) }}" class="btn">🔍 Phân tích lại</a>
+        <a href="{{ url_for('discovery.run', course_id=course.id) }}" class="btn">Phân tích lại</a>
     </div>
 </div>
 
 <div class="info-box">
-    💡 <strong>Bước 2 — Expert Refinement:</strong> Hãy duyệt các lỗ hổng kiến thức đã phát hiện.
+    <strong>Bước 2 — Expert Refinement:</strong> Hãy duyệt các lỗ hổng kiến thức đã phát hiện.
     Bạn có thể <strong>đổi tên</strong>, <strong>xóa</strong>, hoặc <strong>gộp</strong> các lỗ hổng trước khi sinh cơ
     hội học tập.
     Tham khảo chỉ số <strong>Coverage</strong> (số bài đăng) và <strong>Cohesion</strong> (mức nhất quán) để quyết định.
@@ -27,7 +27,7 @@
 <!-- Merge panel -->
 <div class="card" style="margin-bottom: 20px;">
     <div class="card-header">
-        <h3>🔀 Gộp lỗ hổng</h3>
+        <h3>Gộp lỗ hổng</h3>
     </div>
     <div class="card-body">
         <form method="POST" action="{{ url_for('refinement.update', course_id=course.id) }}">
@@ -52,7 +52,7 @@
                         placeholder="Nhập tên tổng hợp cho lỗ hổng đã gộp">
                 </div>
                 <div class="form-group-btn">
-                    <button type="submit" class="btn btn-primary btn-sm">🔀 Gộp</button>
+                    <button type="submit" class="btn btn-primary btn-sm">Gộp</button>
                 </div>
             </div>
         </form>
@@ -96,7 +96,7 @@
             <input type="hidden" name="gap_index" value="{{ loop.index0 }}">
             <input type="text" name="new_name" value="{{ gap.knowledge_gap }}"
                 style="flex: 1; padding: 5px 10px; font-size: 13px; border: 1px solid var(--gray-200); border-radius: var(--radius);">
-            <button type="submit" class="btn btn-sm">✏️ Đổi tên</button>
+            <button type="submit" class="btn btn-sm">Đổi tên</button>
         </form>
 
         <!-- Xóa -->
@@ -104,13 +104,13 @@
             onsubmit="return confirm('Xóa lỗ hổng này?');">
             <input type="hidden" name="action" value="delete">
             <input type="hidden" name="gap_index" value="{{ loop.index0 }}">
-            <button type="submit" class="btn btn-danger btn-sm">🗑️ Xóa</button>
+            <button type="submit" class="btn btn-danger btn-sm">Xóa</button>
         </form>
 
         <!-- Sinh LOP cho gap này -->
         <form method="POST" action="{{ url_for('refinement.confirm', course_id=course.id) }}">
             <input type="hidden" name="selected_gap" value="{{ loop.index0 }}">
-            <button type="submit" class="btn btn-accent btn-sm">✨ Sinh LOP</button>
+            <button type="submit" class="btn btn-accent btn-sm">Sinh LOP</button>
         </form>
     </div>
 </div>
@@ -120,17 +120,17 @@
 <div class="btn-row" style="justify-content: center; margin-top: 24px;">
     <form method="POST" action="{{ url_for('refinement.confirm', course_id=course.id) }}">
         <input type="hidden" name="selected_gap" value="0">
-        <button type="submit" class="btn btn-accent btn-lg">✅ Xác nhận & Sinh LOP cho lỗ hổng hàng đầu</button>
+        <button type="submit" class="btn btn-accent btn-lg">Xác nhận & Sinh LOP cho lỗ hổng hàng đầu</button>
     </form>
     <a href="{{ url_for('courses.detail', course_id=course.id) }}" class="btn">← Quay lại khóa học</a>
 </div>
 
 {% else %}
 <div class="empty-state">
-    <div class="empty-icon">📭</div>
+    <div class="empty-icon"></div>
     <h3>Không còn lỗ hổng nào</h3>
     <p>Tất cả lỗ hổng đã bị xóa. Hãy chạy phân tích lại hoặc quay về khóa học.</p>
-    <a href="{{ url_for('discovery.run', course_id=course.id) }}" class="btn btn-primary">🔍 Phân tích lại</a>
+    <a href="{{ url_for('discovery.run', course_id=course.id) }}" class="btn btn-primary">Phân tích lại</a>
 </div>
 {% endif %}
 

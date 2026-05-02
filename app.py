@@ -1,6 +1,6 @@
 """
 KG2M - app.py
-Demo version 
+Knowledge Gap to Mastery
 """
 
 import os
@@ -31,7 +31,7 @@ def create_app():
     Path(os.path.join(base_dir, "data")).mkdir(exist_ok=True)
     Path(os.path.join(base_dir, "uploads")).mkdir(exist_ok=True)
 
-    # Seed demo data (in-memory)
+    # Seed initial data
     init_db(app)
 
     # ── Register blueprints ──
@@ -84,7 +84,6 @@ def create_app():
 if __name__ == "__main__":
     app = create_app()
     print("=" * 50)
-    print("  KG2M Demo dang chay tai http://localhost:5000")
-    print("  Tai khoan: admin@kg2m.local / admin123")
+    print("  KG2M dang chay tai http://localhost:5000")
     print("=" * 50)
     app.run(debug=True, port=5000)

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}📊 Analytics — {{ course.name }}{% endblock %}
+{% block title %}Analytics — {{ course.name }}{% endblock %}
 
 {% block head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -194,46 +194,46 @@
 </div>
 
 <div class="page-header">
-    <h1>📊 Analytics — {{ course.name }}</h1>
+    <h1>Analytics — {{ course.name }}</h1>
     <div class="header-actions">
         <a href="{{ url_for('courses.detail', course_id=course.id) }}" class="btn">← Quay lại khóa học</a>
-        <a href="{{ url_for('generation.dashboard', course_id=course.id) }}" class="btn btn-accent">✨ Dashboard LOP</a>
+        <a href="{{ url_for('generation.dashboard', course_id=course.id) }}" class="btn btn-accent">Dashboard LOP</a>
     </div>
 </div>
 
 <!-- ══════════════════ KPI CARDS ══════════════════ -->
 <div class="kpi-grid">
     <div class="kpi-card kpi-blue">
-        <div class="kpi-icon">👥</div>
+        <div class="kpi-icon"></div>
         <div class="kpi-value">{{ total_students }}</div>
         <div class="kpi-label">Sinh viên đăng ký</div>
         <div class="kpi-sub">{{ active_students }} đã làm bài</div>
     </div>
     <div class="kpi-card kpi-cyan">
-        <div class="kpi-icon">📄</div>
+        <div class="kpi-icon"></div>
         <div class="kpi-value">{{ total_docs }}</div>
         <div class="kpi-label">Tài liệu</div>
         <div class="kpi-sub">{{ total_pages }} trang đã xử lý</div>
     </div>
     <div class="kpi-card kpi-orange">
-        <div class="kpi-icon">❓</div>
+        <div class="kpi-icon"></div>
         <div class="kpi-value">{{ total_questions }}</div>
         <div class="kpi-label">Câu hỏi đã đặt</div>
         <div class="kpi-sub">{{ pending_questions }} chưa xử lý</div>
     </div>
     <div class="kpi-card kpi-purple">
-        <div class="kpi-icon">🔍</div>
+        <div class="kpi-icon"></div>
         <div class="kpi-value">{{ total_gaps }}</div>
         <div class="kpi-label">Lỗ hổng phát hiện</div>
     </div>
     <div class="kpi-card kpi-green">
-        <div class="kpi-icon">📝</div>
+        <div class="kpi-icon"></div>
         <div class="kpi-value">{{ total_assignments }}</div>
         <div class="kpi-label">Bài tập đã giao</div>
         <div class="kpi-sub">{{ overall_completion_pct }}% tỷ lệ hoàn thành</div>
     </div>
     <div class="kpi-card kpi-rose">
-        <div class="kpi-icon">⭐</div>
+        <div class="kpi-icon"></div>
         <div class="kpi-value">{{ overall_avg_score }}</div>
         <div class="kpi-label">Điểm trung bình / 10</div>
     </div>
@@ -242,7 +242,7 @@
 <!-- ══════════════════ CHARTS ROW 1 ══════════════════ -->
 <div class="charts-grid">
     <div class="chart-card">
-        <h4>📈 Tỷ lệ sai theo Lỗ Hổng Kiến Thức</h4>
+        <h4>Tỷ lệ sai theo Lỗ Hổng Kiến Thức</h4>
         <div class="chart-container">
             <canvas id="gapChart"></canvas>
         </div>
@@ -251,7 +251,7 @@
         {% endif %}
     </div>
     <div class="chart-card">
-        <h4>🎯 Tỷ lệ hoàn thành bài tập tổng thể</h4>
+        <h4>Tỷ lệ hoàn thành bài tập tổng thể</h4>
         <div class="chart-container" style="max-width: 260px; margin: 0 auto;">
             <canvas id="completionChart"></canvas>
         </div>
@@ -261,13 +261,13 @@
 <!-- ══════════════════ CHARTS ROW 2 ══════════════════ -->
 <div class="charts-grid">
     <div class="chart-card">
-        <h4>📊 Phân bố điểm số toàn khóa học</h4>
+        <h4>Phân bố điểm số toàn khóa học</h4>
         <div class="chart-container">
             <canvas id="scoreDistChart"></canvas>
         </div>
     </div>
     <div class="chart-card">
-        <h4>📋 Tỷ lệ hoàn thành theo từng Bài Tập</h4>
+        <h4>Tỷ lệ hoàn thành theo từng Bài Tập</h4>
         <div class="chart-container">
             <canvas id="assignmentChart"></canvas>
         </div>
@@ -280,7 +280,7 @@
 <!-- ══════════════════ TOP WRONG QUESTIONS ══════════════════ -->
 <div class="card">
     <div class="card-header">
-        <h3>🔥 Top Câu Hỏi Bị Sai Nhiều Nhất</h3>
+        <h3>Top Câu Hỏi Bị Sai Nhiều Nhất</h3>
     </div>
     <div class="card-body">
         {% if top_wrong %}
@@ -316,7 +316,7 @@
         </table>
         {% else %}
         <div class="empty-state" style="padding: 30px;">
-            <div class="empty-icon">📭</div>
+            <div class="empty-icon"></div>
             <p>Chưa có dữ liệu câu hỏi sai. Sinh viên cần làm bài trước.</p>
         </div>
         {% endif %}
@@ -326,7 +326,7 @@
 <!-- ══════════════════ STUDENT PROGRESS ══════════════════ -->
 <div class="card">
     <div class="card-header">
-        <h3>👥 Tiến Độ Sinh Viên</h3>
+        <h3>Tiến Độ Sinh Viên</h3>
         <span class="badge">{{ student_progress|length }} sinh viên</span>
     </div>
     <div class="card-body">
@@ -386,7 +386,7 @@
         </table>
         {% else %}
         <div class="empty-state" style="padding: 30px;">
-            <div class="empty-icon">👥</div>
+            <div class="empty-icon"></div>
             <p>Chưa có sinh viên nào đăng ký khóa học này.</p>
         </div>
         {% endif %}
@@ -397,7 +397,7 @@
 {% if assignment_stats %}
 <div class="card">
     <div class="card-header">
-        <h3>📋 Chi Tiết Bài Tập</h3>
+        <h3>Chi Tiết Bài Tập</h3>
     </div>
     <div class="card-body">
         <table class="table">
@@ -438,7 +438,7 @@
                     </td>
                     <td class="muted">{{ a.created_at.strftime('%d/%m/%Y') if a.created_at else '—' }}</td>
                     <td>
-                        <a href="{{ url_for('generation.assignment_dashboard', assignment_id=a.id) }}" class="btn btn-sm btn-primary">📈 Chi tiết</a>
+                        <a href="{{ url_for('generation.assignment_dashboard', assignment_id=a.id) }}" class="btn btn-sm btn-primary">Chi tiết</a>
                     </td>
                 </tr>
                 {% endfor %}

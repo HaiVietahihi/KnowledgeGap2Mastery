@@ -3,12 +3,12 @@
 
 {% block content %}
 <div class="page-header">
-    <h1>📚 Khóa học của tôi</h1>
+    <h1>Khóa học của tôi</h1>
     <div class="header-actions">
         {% if current_user.role == 'student' %}
-        <a href="{{ url_for('courses.discover') }}" class="btn btn-primary">🔍 Tự tìm khóa học mới</a>
+        <a href="{{ url_for('courses.discover') }}" class="btn btn-primary">Tìm khóa học mới</a>
         {% elif current_user.role == 'instructor' %}
-        <a href="{{ url_for('courses.create') }}" class="btn btn-primary">➕ Tạo khóa học mới</a>
+        <a href="{{ url_for('courses.create') }}" class="btn btn-primary">Tạo khóa học mới</a>
         {% endif %}
     </div>
 </div>
@@ -18,25 +18,25 @@
     {% for course in courses %}
     <div class="card">
         <div class="card-header">
-            <h3><span class="course-icon">🎓</span> {{ course.name }}</h3>
+            <h3>{{ course.name }}</h3>
             <span class="badge">{{ course.code }}</span>
         </div>
         <div class="card-body">
             <p>{{ course.description or 'Chưa có mô tả.' }}</p>
             {% set stats = course_stats.get(course.id, {}) %}
             <div class="stat-row" style="margin-top: 12px;">
-                📄 {{ stats.get('doc_count', 0) }} tài liệu &nbsp;·&nbsp;
-                🔍 {{ stats.get('gap_count', 0) }} lỗ hổng &nbsp;·&nbsp;
-                ✨ {{ stats.get('lop_count', 0) }} LOP
+                {{ stats.get('doc_count', 0) }} tài liệu &nbsp;·&nbsp;
+                {{ stats.get('gap_count', 0) }} lỗ hổng &nbsp;·&nbsp;
+                {{ stats.get('lop_count', 0) }} LOP
             </div>
         </div>
         <div class="card-footer">
             <a href="{{ url_for('courses.detail', course_id=course.id) }}" class="btn btn-primary btn-sm">Xem chi
                 tiết</a>
             {% if current_user.role == 'instructor' %}
-            <a href="{{ url_for('analytics.dashboard', course_id=course.id) }}" class="btn btn-sm" style="background:#7c3aed;color:#fff;border-color:#7c3aed;">📊 Analytics</a>
-            <a href="{{ url_for('discovery.run', course_id=course.id) }}" class="btn btn-sm">🔍 Phát hiện lỗ hổng</a>
-            <a href="{{ url_for('generation.dashboard', course_id=course.id) }}" class="btn btn-accent btn-sm">✨ Sinh
+            <a href="{{ url_for('analytics.dashboard', course_id=course.id) }}" class="btn btn-sm" style="background:#7c3aed;color:#fff;border-color:#7c3aed;">Analytics</a>
+            <a href="{{ url_for('discovery.run', course_id=course.id) }}" class="btn btn-sm">Phát hiện lỗ hổng</a>
+            <a href="{{ url_for('generation.dashboard', course_id=course.id) }}" class="btn btn-accent btn-sm">Sinh
                 LOP</a>
             {% endif %}
         </div>
@@ -45,11 +45,10 @@
 </div>
 {% else %}
 <div class="empty-state">
-    <div class="empty-icon">📭</div>
     <h3>Chưa có khóa học nào</h3>
     {% if current_user.role == 'student' %}
     <p>Hãy tự tìm và tham gia khóa học nhé.</p>
-    <a href="{{ url_for('courses.discover') }}" class="btn btn-primary">🔍 Tìm khóa học</a>
+    <a href="{{ url_for('courses.discover') }}" class="btn btn-primary">Tìm khóa học</a>
     {% else %}
     <p>Chưa có khóa học nào được tạo.</p>
     {% endif %}
@@ -57,7 +56,7 @@
 {% endif %}
 
 <div class="pipeline-steps">
-    <h2>🔄 Pipeline KG2M</h2>
+    <h2>Pipeline KG2M</h2>
     <div class="steps-row">
         <div class="step">
             <div class="step-num">1</div>

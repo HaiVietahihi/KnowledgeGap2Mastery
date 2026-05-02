@@ -8,7 +8,7 @@ from database.models import db, User, Course
 
 def init_db(app):
     """
-    Initialize SQLAlchemy and seed with demo data
+    Initialize SQLAlchemy and seed with initial data
     """
     db.init_app(app)
     with app.app_context():
@@ -25,10 +25,10 @@ def _seed_db():
         db.session.add(admin)
         db.session.commit()
     
-    # Check if demo student exists
+    # Check if student exists
     student = User.query.filter_by(email="student@kg2m.local").first()
     if not student:
-        student = User.create(email="student@kg2m.local", name="Sinh viên Demo", password="student123", role="student")
+        student = User.create(email="student@kg2m.local", name="Sinh viên", password="student123", role="student")
         db.session.add(student)
         
     db.session.commit()

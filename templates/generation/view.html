@@ -9,9 +9,9 @@
 </div>
 
 <div class="page-header">
-    <h1>📋 Cơ hội học tập đã sinh</h1>
+    <h1>Cơ hội học tập đã sinh</h1>
     <div class="header-actions">
-        <a href="{{ url_for('generation.generate', course_id=course.id) }}" class="btn btn-accent">✨ Sinh thêm</a>
+        <a href="{{ url_for('generation.generate', course_id=course.id) }}" class="btn btn-accent">Sinh thêm</a>
     </div>
 </div>
 
@@ -39,10 +39,17 @@
 {% set result = task.result %}
 {% set meta = result.metadata %}
 
+<!-- Thông báo nếu đã lưu -->
+{% if already_saved %}
+<div class="alert alert-success">
+    Các câu hỏi đã được lưu vào ngân hàng câu hỏi. Bạn có thể xem tại <a href="{{ url_for('generation.dashboard', course_id=course.id) }}" style="font-weight:700; text-decoration:underline;">Dashboard LOP</a>.
+</div>
+{% endif %}
+
 <!-- Metadata -->
 <div class="card">
     <div class="card-header">
-        <h3>📌 Thông tin tổng quan</h3>
+        <h3>Thông tin tổng quan</h3>
     </div>
     <div class="card-body">
         <div class="meta-grid">
@@ -70,38 +77,115 @@
     </div>
 </div>
 
+{% if not already_saved %}
+<!-- Form lưu câu hỏi đã chọn -->
+<form method="POST" action="{{ url_for('generation.save_selected_lops', course_id=course.id, task_id=task_id) }}" id="saveLopsForm">
+
+<!-- Thanh công cụ sticky -->
+<div class="assignment-toolbar">
+    <div class="toolbar-left">
+        <button type="button" class="btn btn-sm" onclick="toggleSelectAllLops(true)">Chọn tất cả</button>
+        <button type="button" class="btn btn-sm" onclick="toggleSelectAllLops(false)">Bỏ chọn</button>
+    </div>
+    <div class="toolbar-right">
+        <div class="toolbar-counter">
+            <span class="counter-num" id="lopCounterNum">0</span>
+            <span class="counter-label">câu đã chọn</span>
+        </div>
+        <button type="submit" class="btn btn-accent" id="saveLopsBtn" disabled>
+            Lưu câu hỏi đã chọn
+        </button>
+    </div>
+</div>
+{% endif %}
+
 {% for lop_item in result.lops %}
 {% set lop = lop_item.lop %}
 {% set evaluation = lop_item.evaluation %}
+{% set idx = loop.index0 %}
 
 <!-- LOP Content -->
-<div class="card">
-    <div class="card-header">
-        <h3>📝 Câu hỏi #{{ loop.index }} / {{ result.lops | length }}</h3>
+<div class="card lop-card" id="lop-card-{{ idx }}">
+    <div class="card-header" style="gap: 12px;">
+        {% if not already_saved %}
+        <label class="lop-select-label" style="display:flex;align-items:center;gap:10px;cursor:pointer;margin:0;">
+            <input type="checkbox" name="selected_lops" value="{{ idx }}"
+                   class="lop-select-checkbox" onchange="updateLopCounters()"
+                   style="width:20px;height:20px;accent-color:var(--primary);">
+            <h3 style="margin:0;">Câu hỏi #{{ loop.index }} / {{ result.lops | length }}</h3>
+        </label>
+        <div style="display:flex;gap:6px;">
+            <button type="button" class="btn btn-sm" onclick="toggleEditMode({{ idx }})">
+                Chỉnh sửa
+            </button>
+        </div>
+        {% else %}
+        <h3>Câu hỏi #{{ loop.index }} / {{ result.lops | length }}</h3>
+        {% endif %}
     </div>
     <div class="card-body">
         {% if lop.lop_type == 'MCQ' %}
-        <!-- MCQ Display -->
-        <div class="mcq-question">{{ lop.get('cau_hoi', '') }}</div>
-        <div class="mcq-options">
-            {% for key in ['A', 'B', 'C', 'D'] %}
-            {% if lop.get('dap_an', {}).get(key) %}
-            <div class="mcq-option {% if lop.get('dap_an_dung') == key %}mcq-correct{% endif %}">
-                <span class="option-label">{{ key }}.</span>
-                <span>{{ lop.dap_an[key] }}</span>
-                {% if lop.get('dap_an_dung') == key %}
-                <span class="correct-mark">✓ Đáp án đúng</span>
+
+        <!-- Chế độ xem (hiển thị mặc định) -->
+        <div class="lop-view-mode" id="view-mode-{{ idx }}">
+            <div class="mcq-question">{{ lop.get('cau_hoi', '') }}</div>
+            <div class="mcq-options">
+                {% for key in ['A', 'B', 'C', 'D'] %}
+                {% if lop.get('dap_an', {}).get(key) %}
+                <div class="mcq-option {% if lop.get('dap_an_dung') == key %}mcq-correct{% endif %}">
+                    <span class="option-label">{{ key }}.</span>
+                    <span>{{ lop.dap_an[key] }}</span>
+                    {% if lop.get('dap_an_dung') == key %}
+                    <span class="correct-mark">✓ Đáp án đúng</span>
+                    {% endif %}
+                </div>
                 {% endif %}
+                {% endfor %}
+            </div>
+            {% if lop.get('giai_thich') %}
+            <div class="explanation">
+                <strong>Giải thích:</strong><br>
+                {{ lop.giai_thich }}
             </div>
             {% endif %}
+        </div>
+
+        <!-- Chế độ chỉnh sửa (ẩn mặc định) -->
+        {% if not already_saved %}
+        <div class="lop-edit-mode" id="edit-mode-{{ idx }}" style="display:none;">
+            <div class="form-group">
+                <label><strong>Câu hỏi:</strong></label>
+                <textarea class="edit-field" id="edit-cau-hoi-{{ idx }}" rows="3"
+                          style="width:100%;padding:10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:14px;font-family:inherit;">{{ lop.get('cau_hoi', '') }}</textarea>
+            </div>
+            {% for key in ['A', 'B', 'C', 'D'] %}
+            <div class="form-group" style="margin-bottom:8px;">
+                <label style="display:flex;align-items:center;gap:8px;">
+                    <input type="radio" name="edit-correct-{{ idx }}" value="{{ key }}"
+                           {% if lop.get('dap_an_dung') == key %}checked{% endif %}
+                           style="accent-color:var(--accent);">
+                    <strong>{{ key }}.</strong>
+                    <input type="text" class="edit-field" id="edit-ans-{{ key }}-{{ idx }}"
+                           value="{{ lop.get('dap_an', {}).get(key, '') }}"
+                           style="flex:1;padding:6px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:14px;">
+                </label>
+            </div>
             {% endfor %}
+            <p class="form-hint" style="margin-bottom:12px;">Chọn radio để đánh dấu đáp án đúng</p>
+            <div class="form-group">
+                <label><strong>Giải thích:</strong></label>
+                <textarea class="edit-field" id="edit-giai-thich-{{ idx }}" rows="3"
+                          style="width:100%;padding:10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:14px;font-family:inherit;">{{ lop.get('giai_thich', '') }}</textarea>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:10px;">
+                <button type="button" class="btn btn-accent btn-sm" onclick="applyEdit({{ idx }})">Áp dụng</button>
+                <button type="button" class="btn btn-sm" onclick="cancelEdit({{ idx }})">Hủy</button>
+            </div>
         </div>
-        {% if lop.get('giai_thich') %}
-        <div class="explanation">
-            <strong>💡 Giải thích:</strong><br>
-            {{ lop.giai_thich }}
-        </div>
+        <!-- Hidden field chứa JSON đã chỉnh sửa -->
+        <input type="hidden" name="lop_content_{{ idx }}" id="lop-content-{{ idx }}" value="">
         {% endif %}
+
         {% else %}
         <!-- Generic LOP -->
         {% if lop.get('tieu_de') %}
@@ -110,7 +194,7 @@
         <div class="generic-content">{{ lop.get('noi_dung', '') }}</div>
         {% if lop.get('muc_tieu_hoc_tap') %}
         <div class="learning-objectives">
-            <strong>🎯 Mục tiêu học tập:</strong>
+            <strong>Mục tiêu học tập:</strong>
             <ul>
                 {% for mt in lop.muc_tieu_hoc_tap %}
                 <li>{{ mt }}</li>
@@ -126,12 +210,11 @@
 {% if evaluation %}
 <div class="card">
     <div class="card-header">
-        <h3>🛡️ Đánh giá AI Guardrails — Câu hỏi #{{ loop.index }}</h3>
+        <h3>Đánh giá AI Guardrails — Câu hỏi #{{ loop.index }}</h3>
     </div>
     <div class="card-body">
         <div class="eval-grid">
-            {% for key, label in [('tinh_xac', 'Tính chính xác'), ('do_sau', 'Độ sâu ngữ cảnh'), ('dap_an_sai', 'Chất
-            lượng đáp án sai'), ('phu_hop', 'Phù hợp lỗ hổng')] %}
+            {% for key, label in [('tinh_xac', 'Tính chính xác'), ('do_sau', 'Độ sâu ngữ cảnh'), ('dap_an_sai', 'Chất lượng đáp án sai'), ('phu_hop', 'Phù hợp lỗ hổng')] %}
             {% if evaluation.get(key) %}
             <div class="eval-item">
                 <div class="eval-label">{{ label }}</div>
@@ -148,12 +231,12 @@
 
         {% if evaluation.get('tong_ket') %}
         <div class="eval-summary">
-            <strong>📋 Tổng kết:</strong> {{ evaluation.tong_ket }}
+            <strong>Tổng kết:</strong> {{ evaluation.tong_ket }}
         </div>
         {% endif %}
         {% if evaluation.get('de_xuat_chinh') %}
         <div class="eval-suggestion">
-            <strong>💡 Đề xuất:</strong> {{ evaluation.de_xuat_chinh }}
+            <strong>Đề xuất:</strong> {{ evaluation.de_xuat_chinh }}
         </div>
         {% endif %}
     </div>
@@ -165,33 +248,33 @@
 {% if attribution and attribution.get('used_sources') %}
 <div class="card">
     <div class="card-header">
-        <h3>📚 Nguồn tham chiếu — Câu hỏi #{{ loop.index }}</h3>
+        <h3>Nguồn tham chiếu — Câu hỏi #{{ loop.index }}</h3>
     </div>
     <div class="card-body">
         {% if attribution.get('summary') %}
-        <div style="margin-bottom: 14px; padding: 10px 14px; background: rgba(99,179,237,0.08); border-left: 3px solid #63b3ed; border-radius: 6px; font-style: italic; color: #bee3f8;">
-            📋 {{ attribution.summary }}
+        <div style="margin-bottom: 14px; padding: 10px 14px; background: var(--primary-light); border-left: 3px solid var(--primary); border-radius: 6px; font-style: italic;">
+            {{ attribution.summary }}
         </div>
         {% endif %}
         <div style="display: flex; flex-direction: column; gap: 10px;">
             {% for src in attribution.used_sources %}
-            <div style="padding: 12px 16px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;">
+            <div style="padding: 12px 16px; background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 8px;">
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-                    <span style="background: #3182ce; color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;">{{ src.get('source_index', loop.index) }}</span>
-                    <strong style="color: #90cdf4;">{{ src.get('doc_name', 'Không rõ') }}</strong>
+                    <span style="background: var(--primary); color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;">{{ src.get('source_index', loop.index) }}</span>
+                    <strong>{{ src.get('doc_name', 'Không rõ') }}</strong>
                     {% if src.get('file_name') and src.file_name != 'Không rõ' %}
-                    <span style="color: #718096; font-size: 12px;">({{ src.file_name }})</span>
+                    <span style="color: var(--gray-400); font-size: 12px;">({{ src.file_name }})</span>
                     {% endif %}
                 </div>
                 <div style="margin-left: 36px;">
-                    <div style="color: #e2e8f0; margin-bottom: 4px;">
-                        📑 Mục: <strong>{{ src.get('section_title', '—') }}</strong>
+                    <div style="margin-bottom: 4px;">
+                        Mục: <strong>{{ src.get('section_title', '—') }}</strong>
                         {% if src.get('page_start') %}
-                        <span style="color: #718096; font-size: 12px; margin-left: 8px;">Trang {{ src.page_start }}{% if src.get('page_end') and src.page_end != src.page_start %} – {{ src.page_end }}{% endif %}</span>
+                        <span style="color: var(--gray-400); font-size: 12px; margin-left: 8px;">Trang {{ src.page_start }}{% if src.get('page_end') and src.page_end != src.page_start %} – {{ src.page_end }}{% endif %}</span>
                         {% endif %}
                     </div>
                     {% if src.get('contribution') and src.contribution != '(Không xác định được)' %}
-                    <div style="color: #a0aec0; font-size: 13px;">💡 {{ src.contribution }}</div>
+                    <div style="color: var(--gray-400); font-size: 13px;">{{ src.contribution }}</div>
                     {% endif %}
                 </div>
             </div>
@@ -203,21 +286,147 @@
 
 {% endfor %}
 
+{% if not already_saved %}
+</form>
+{% endif %}
+
 <div class="btn-row" style="margin-top: 20px;">
-    <a href="{{ url_for('generation.dashboard', course_id=course.id) }}" class="btn btn-accent btn-lg">📊 Xem Dashboard LOP</a>
-    <a href="{{ url_for('generation.generate', course_id=course.id) }}" class="btn">✨ Sinh thêm</a>
+    <a href="{{ url_for('generation.dashboard', course_id=course.id) }}" class="btn btn-accent btn-lg">Xem Dashboard LOP</a>
+    <a href="{{ url_for('generation.generate', course_id=course.id) }}" class="btn">Sinh thêm</a>
 </div>
 
 {% elif task.status == 'error' %}
 <div class="alert alert-error">
     ❌ <strong>Lỗi:</strong> {{ task.error }}
 </div>
-<a href="{{ url_for('generation.generate', course_id=course.id) }}" class="btn btn-primary">🔁 Thử lại</a>
+<a href="{{ url_for('generation.generate', course_id=course.id) }}" class="btn btn-primary">Thử lại</a>
 
 {% else %}
 <div class="alert alert-warning">
     ⚠️ Không tìm thấy task. Vui lòng sinh LOP lại.
 </div>
-<a href="{{ url_for('generation.generate', course_id=course.id) }}" class="btn btn-primary">✨ Sinh LOP mới</a>
+<a href="{{ url_for('generation.generate', course_id=course.id) }}" class="btn btn-primary">Sinh LOP mới</a>
 {% endif %}
+
+<script>
+// Chọn/bỏ tất cả
+function toggleSelectAllLops(selectAll) {
+    document.querySelectorAll('.lop-select-checkbox').forEach(function(cb) {
+        cb.checked = selectAll;
+    });
+    updateLopCounters();
+}
+
+// Cập nhật counter
+function updateLopCounters() {
+    var total = document.querySelectorAll('.lop-select-checkbox:checked').length;
+    var el = document.getElementById('lopCounterNum');
+    if (el) el.textContent = total;
+    var btn = document.getElementById('saveLopsBtn');
+    if (btn) btn.disabled = total === 0;
+
+    // Highlight selected cards
+    document.querySelectorAll('.lop-card').forEach(function(card) {
+        var cb = card.querySelector('.lop-select-checkbox');
+        if (cb && cb.checked) {
+            card.style.borderColor = 'var(--primary)';
+            card.style.boxShadow = '0 0 0 2px var(--primary-light)';
+        } else {
+            card.style.borderColor = '';
+            card.style.boxShadow = '';
+        }
+    });
+}
+
+// Toggle edit mode
+function toggleEditMode(idx) {
+    var viewMode = document.getElementById('view-mode-' + idx);
+    var editMode = document.getElementById('edit-mode-' + idx);
+    if (editMode.style.display === 'none') {
+        viewMode.style.display = 'none';
+        editMode.style.display = 'block';
+        // Auto-check khi bắt đầu edit
+        var card = document.getElementById('lop-card-' + idx);
+        var cb = card.querySelector('.lop-select-checkbox');
+        if (cb) { cb.checked = true; updateLopCounters(); }
+    } else {
+        editMode.style.display = 'none';
+        viewMode.style.display = 'block';
+    }
+}
+
+// Áp dụng chỉnh sửa
+function applyEdit(idx) {
+    var cauHoi = document.getElementById('edit-cau-hoi-' + idx).value;
+    var giaiThich = document.getElementById('edit-giai-thich-' + idx).value;
+    var dapAn = {};
+    var dapAnDung = '';
+    ['A', 'B', 'C', 'D'].forEach(function(key) {
+        var input = document.getElementById('edit-ans-' + key + '-' + idx);
+        if (input) dapAn[key] = input.value;
+    });
+    var radios = document.querySelectorAll('input[name="edit-correct-' + idx + '"]');
+    radios.forEach(function(r) { if (r.checked) dapAnDung = r.value; });
+
+    var lopContent = {
+        "lop_type": "MCQ",
+        "cau_hoi": cauHoi,
+        "dap_an": dapAn,
+        "dap_an_dung": dapAnDung,
+        "giai_thich": giaiThich
+    };
+
+    // Lưu vào hidden field
+    document.getElementById('lop-content-' + idx).value = JSON.stringify(lopContent);
+
+    // Cập nhật chế độ xem
+    var viewMode = document.getElementById('view-mode-' + idx);
+    var questionEl = viewMode.querySelector('.mcq-question');
+    if (questionEl) questionEl.textContent = cauHoi;
+
+    var options = viewMode.querySelectorAll('.mcq-option');
+    var keys = ['A', 'B', 'C', 'D'];
+    options.forEach(function(opt, i) {
+        var key = keys[i];
+        opt.className = 'mcq-option' + (key === dapAnDung ? ' mcq-correct' : '');
+        var spans = opt.querySelectorAll('span');
+        if (spans[1]) spans[1].textContent = dapAn[key] || '';
+        // Update correct mark
+        var mark = opt.querySelector('.correct-mark');
+        if (key === dapAnDung) {
+            if (!mark) {
+                mark = document.createElement('span');
+                mark.className = 'correct-mark';
+                opt.appendChild(mark);
+            }
+            mark.textContent = '✓ Đáp án đúng';
+        } else if (mark) {
+            mark.remove();
+        }
+    });
+
+    var explEl = viewMode.querySelector('.explanation');
+    if (explEl && giaiThich) {
+        explEl.innerHTML = '<strong>Giải thích:</strong><br>' + giaiThich;
+    }
+
+    // Hiển thị badge "đã chỉnh sửa"
+    var card = document.getElementById('lop-card-' + idx);
+    var header = card.querySelector('.card-header h3');
+    if (header && header.textContent.indexOf('[sửa]') === -1) {
+        header.textContent += ' [sửa]';
+    }
+
+    // Switch back to view mode
+    toggleEditMode(idx);
+}
+
+// Hủy chỉnh sửa
+function cancelEdit(idx) {
+    var viewMode = document.getElementById('view-mode-' + idx);
+    var editMode = document.getElementById('edit-mode-' + idx);
+    editMode.style.display = 'none';
+    viewMode.style.display = 'block';
+}
+</script>
 {% endblock %}

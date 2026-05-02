@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}👤 {{ student.name }} — Analytics{% endblock %}
+{% block title %}{{ student.name }} — Analytics{% endblock %}
 
 {% block head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -193,7 +193,7 @@
 <div class="two-col">
     <!-- ── Gap Radar Chart ── -->
     <div class="chart-card">
-        <h4>📊 Năng Lực Theo Lỗ Hổng Kiến Thức</h4>
+        <h4>Năng Lực Theo Lỗ Hổng Kiến Thức</h4>
         {% if gap_summary %}
         <div style="max-height: 280px;">
             <canvas id="gapRadar"></canvas>
@@ -205,7 +205,7 @@
 
     <!-- ── Gap Performance List ── -->
     <div class="chart-card">
-        <h4>📋 Chi Tiết Từng Lỗ Hổng</h4>
+        <h4>Chi Tiết Từng Lỗ Hổng</h4>
         {% if gap_summary %}
         {% for g in gap_summary %}
         <div class="gap-perf-item">
@@ -227,7 +227,7 @@
 <!-- ── Assignments Table ── -->
 <div class="card">
     <div class="card-header">
-        <h3>📝 Kết Quả Từng Bài Tập</h3>
+        <h3>Kết Quả Từng Bài Tập</h3>
     </div>
     <div class="card-body">
         {% if student_assignments %}

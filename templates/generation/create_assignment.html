@@ -10,60 +10,254 @@
 </div>
 
 <div class="page-header">
-    <h1>📝 Tạo Bài Tập Tổng Hợp</h1>
+    <h1>Tạo Bài Tập Tổng Hợp</h1>
 </div>
 
-<form method="POST" class="card">
-    <div class="card-body">
-        <div class="form-group">
-            <label for="title" style="font-weight: bold; font-size: 16px;">Tên bài tập:</label>
-            <input type="text" id="title" name="title" class="form-control" placeholder="Ví dụ: Bài tập ôn luyện tuần 1" required style="width: 100%; padding: 10px; margin-top: 5px;">
-        </div>
-        
-        <h3 style="margin-top: 20px; margin-bottom: 10px;">Chọn các câu hỏi từ các LOP đã tạo:</h3>
-        
-        {% set current_gap = "" %}
-        {% for q_item in all_questions %}
-        
-        {% if q_item.gap_title != current_gap %}
-            {% if current_gap != "" %}</div>{% endif %}
-            <div style="margin-top: 25px; margin-bottom: 10px;">
-                <h4 style="border-bottom: 2px solid #ccc; padding-bottom: 5px;">Từ Lỗ hổng: "{{ q_item.gap_title }}"</h4>
+<form method="POST" id="assignmentForm">
+    <!-- Thanh công cụ sticky -->
+    <div class="assignment-toolbar" id="toolbar">
+        <div class="toolbar-left">
+            <div class="form-group" style="margin-bottom: 0;">
+                <input type="text" id="title" name="title" class="toolbar-title-input"
+                       placeholder="Nhập tên bài tập..." required>
             </div>
-            <div class="questions-group">
-            {% set current_gap = q_item.gap_title %}
-        {% endif %}
-        
-        {% set q = q_item.q_data %}
-        <div class="question-card" style="border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; background: #fafafa;">
-            <label style="display: flex; align-items: flex-start; cursor: pointer;">
-                <input type="checkbox" name="question_indices" value="{{ q_item.global_index }}" style="margin-top: 5px; margin-right: 15px; transform: scale(1.5);">
-                <div style="flex: 1;">
-                    <div style="font-weight: bold; margin-bottom: 10px;">Câu: {{ q.get('cau_hoi', '') }}</div>
-                    
-                    {% if q.get('dap_an') %}
-                    <ul style="list-style-type: none; padding-left: 0; margin-bottom: 0;">
-                        {% for key, val in q.dap_an.items() %}
-                        <li style="margin-bottom: 5px; {% if key == q.get('dap_an_dung') %}color: green; font-weight: bold;{% endif %}">
-                            {{ key }}. {{ val }} {% if key == q.get('dap_an_dung') %}(Đáp án đúng){% endif %}
-                        </li>
-                        {% endfor %}
-                    </ul>
-                    {% endif %}
-                </div>
-            </label>
         </div>
-        
-        {% if loop.last %}</div>{% endif %}
-        
-        {% else %}
-        <div class="alert alert-warning">Chưa có câu hỏi nào được tạo trong các LOP của khóa học.</div>
-        {% endfor %}
-        
-        <div style="margin-top: 20px;">
-            <button type="submit" class="btn btn-primary" style="padding: 10px 20px; font-size: 16px;">Tạo Bài Tập Này</button>
-            <a href="{{ url_for('generation.dashboard', course_id=course.id) }}" class="btn btn-outline" style="margin-left: 10px;">Hủy</a>
+        <div class="toolbar-right">
+            <div class="toolbar-search">
+                <span class="search-icon"></span>
+                <input type="text" id="searchInput" placeholder="Tìm câu hỏi..." class="search-input">
+            </div>
+            <div class="toolbar-counter" id="selectionCounter">
+                <span class="counter-num" id="counterNum">0</span>
+                <span class="counter-label">câu đã chọn</span>
+            </div>
+            <button type="submit" class="btn btn-accent" id="submitBtn" disabled>
+                Tạo Bài Tập
+            </button>
+            <a href="{{ url_for('generation.dashboard', course_id=course.id) }}" class="btn btn-outline-light">Hủy</a>
         </div>
     </div>
+
+    <!-- Danh sách câu hỏi -->
+    <div class="assignment-body">
+
+    {% if not all_questions %}
+        <!-- Trống -->
+        <div class="empty-state" style="padding: 40px;">
+            <div class="empty-icon"></div>
+            <h3>Chưa có câu hỏi nào</h3>
+            <p>Hãy sinh câu hỏi MCQ từ các lỗ hổng kiến thức trước khi tạo bài tập.</p>
+            <a href="{{ url_for('generation.dashboard', course_id=course.id) }}" class="btn btn-accent">← Quay lại Dashboard</a>
+        </div>
+
+    {% else %}
+        {# Tính số lỗ hổng duy nhất #}
+        {% set unique_gaps = [] %}
+        {% for q_item in all_questions %}
+            {% if q_item.gap_title not in unique_gaps %}
+                {% if unique_gaps.append(q_item.gap_title) %}{% endif %}
+            {% endif %}
+        {% endfor %}
+
+        <!-- Nút hành động nhanh -->
+        <div class="quick-actions">
+            <button type="button" class="btn btn-sm" onclick="toggleSelectAll(true)">Chọn tất cả</button>
+            <button type="button" class="btn btn-sm" onclick="toggleSelectAll(false)">Bỏ chọn tất cả</button>
+            <button type="button" class="btn btn-sm" onclick="toggleExpandAll(true)">Mở rộng</button>
+            <button type="button" class="btn btn-sm" onclick="toggleExpandAll(false)">Thu gọn</button>
+            <span class="quick-info muted">Tổng: {{ all_questions|length }} câu hỏi từ {{ unique_gaps|length }} lỗ hổng</span>
+        </div>
+
+        {# Render từng nhóm gap riêng biệt (dùng unique_gaps đã tính) #}
+        {% for gap_title in unique_gaps %}
+            {% set gap_questions = [] %}
+            {% for q_item in all_questions %}
+                {% if q_item.gap_title == gap_title %}
+                    {% if gap_questions.append(q_item) %}{% endif %}
+                {% endif %}
+            {% endfor %}
+            {% set gap_id = gap_questions[0].gap_id %}
+
+            <!-- Gap Group -->
+            <div class="gap-group" data-gap-title="{{ gap_title }}">
+                <div class="gap-group-header" onclick="toggleGapGroup(this)">
+                    <div class="gap-header-left">
+                        <span class="gap-expand-icon">▼</span>
+                        <label class="gap-select-all" onclick="event.stopPropagation()">
+                            <input type="checkbox" class="gap-checkbox" onchange="toggleGapQuestions(this, '{{ gap_id }}')">
+                        </label>
+                        <div class="gap-header-info">
+                            <span class="gap-header-title">{{ gap_title }}</span>
+                            <span class="gap-header-count" data-gap-id="{{ gap_id }}">
+                                {{ gap_questions|length }} câu hỏi
+                            </span>
+                        </div>
+                    </div>
+                    <div class="gap-header-right">
+                        <span class="gap-selected-badge" data-gap-id="{{ gap_id }}">0 đã chọn</span>
+                    </div>
+                </div>
+                <div class="gap-group-body open">
+                    <div class="questions-list">
+
+                        {% for q_item in gap_questions %}
+                        {% set q = q_item.q_data %}
+                        <div class="question-item" data-gap-id="{{ q_item.gap_id }}" data-index="{{ q_item.global_index }}">
+                            <label class="question-label">
+                                <div class="question-checkbox-wrap">
+                                    <input type="checkbox" name="question_indices" value="{{ q_item.global_index }}"
+                                           class="question-checkbox" data-gap-id="{{ q_item.gap_id }}"
+                                           onchange="updateCounters()">
+                                    <span class="question-number">#{{ q_item.global_index + 1 }}</span>
+                                </div>
+                                <div class="question-content">
+                                    <div class="question-text">{{ q.get('cau_hoi', '') }}</div>
+                                    {% if q.get('dap_an') %}
+                                    <div class="question-answers">
+                                        {% for key, val in q.dap_an.items() %}
+                                        <div class="answer-option {% if key == q.get('dap_an_dung') %}answer-correct{% endif %}">
+                                            <span class="answer-key">{{ key }}</span>
+                                            <span class="answer-text">{{ val }}</span>
+                                            {% if key == q.get('dap_an_dung') %}
+                                            <span class="answer-badge">✓</span>
+                                            {% endif %}
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </label>
+                        </div>
+                        {% endfor %}
+
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+
+    {% endif %}
+
+    </div>
 </form>
+
+<script>
+// Toggle mở/đóng nhóm gap
+function toggleGapGroup(headerEl) {
+    var body = headerEl.nextElementSibling;
+    var icon = headerEl.querySelector('.gap-expand-icon');
+    if (body.classList.contains('open')) {
+        body.classList.remove('open');
+        icon.textContent = '▶';
+    } else {
+        body.classList.add('open');
+        icon.textContent = '▼';
+    }
+}
+
+// Chọn/bỏ tất cả câu trong 1 nhóm gap
+function toggleGapQuestions(gapCheckbox, gapId) {
+    var checked = gapCheckbox.checked;
+    var questions = document.querySelectorAll('.question-checkbox[data-gap-id="' + gapId + '"]');
+    questions.forEach(function(cb) {
+        var item = cb.closest('.question-item');
+        if (item && item.style.display !== 'none') {
+            cb.checked = checked;
+        }
+    });
+    updateCounters();
+}
+
+// Chọn/bỏ tất cả
+function toggleSelectAll(selectAll) {
+    document.querySelectorAll('.question-checkbox').forEach(function(cb) {
+        var item = cb.closest('.question-item');
+        if (item && item.style.display !== 'none') {
+            cb.checked = selectAll;
+        }
+    });
+    document.querySelectorAll('.gap-checkbox').forEach(function(gc) {
+        gc.checked = selectAll;
+    });
+    updateCounters();
+}
+
+// Mở/thu gọn tất cả
+function toggleExpandAll(expand) {
+    document.querySelectorAll('.gap-group-body').forEach(function(body) {
+        if (expand) body.classList.add('open');
+        else body.classList.remove('open');
+    });
+    document.querySelectorAll('.gap-expand-icon').forEach(function(icon) {
+        icon.textContent = expand ? '▼' : '▶';
+    });
+}
+
+// Cập nhật bộ đếm
+function updateCounters() {
+    var total = document.querySelectorAll('.question-checkbox:checked').length;
+    document.getElementById('counterNum').textContent = total;
+
+    var submitBtn = document.getElementById('submitBtn');
+    if (submitBtn) submitBtn.disabled = total === 0;
+
+    // Counter cho từng gap
+    var gapIds = [];
+    document.querySelectorAll('.question-checkbox').forEach(function(cb) {
+        var gid = cb.getAttribute('data-gap-id');
+        if (gapIds.indexOf(gid) === -1) gapIds.push(gid);
+    });
+
+    gapIds.forEach(function(gid) {
+        var allInGap = document.querySelectorAll('.question-checkbox[data-gap-id="' + gid + '"]');
+        var checkedInGap = document.querySelectorAll('.question-checkbox[data-gap-id="' + gid + '"]:checked');
+
+        // Update badge
+        document.querySelectorAll('.gap-selected-badge[data-gap-id="' + gid + '"]').forEach(function(b) {
+            b.textContent = checkedInGap.length + ' đã chọn';
+            b.classList.toggle('has-selected', checkedInGap.length > 0);
+        });
+
+        // Update gap checkbox indeterminate state
+        document.querySelectorAll('.gap-group').forEach(function(group) {
+            var groupTitle = group.getAttribute('data-gap-title');
+            var groupCheckbox = group.querySelector('.gap-checkbox');
+            var groupQuestions = group.querySelectorAll('.question-checkbox[data-gap-id="' + gid + '"]');
+            if (groupCheckbox && groupQuestions.length > 0) {
+                var checkedCount = group.querySelectorAll('.question-checkbox[data-gap-id="' + gid + '"]:checked').length;
+                groupCheckbox.checked = (checkedCount === groupQuestions.length);
+                groupCheckbox.indeterminate = (checkedCount > 0 && checkedCount < groupQuestions.length);
+            }
+        });
+    });
+}
+
+// Tìm kiếm
+document.getElementById('searchInput').addEventListener('input', function() {
+    var query = this.value.toLowerCase().trim();
+
+    document.querySelectorAll('.question-item').forEach(function(item) {
+        var text = item.textContent.toLowerCase();
+        item.style.display = (query === '' || text.indexOf(query) !== -1) ? '' : 'none';
+    });
+
+    // Ẩn/hiện nhóm gap
+    document.querySelectorAll('.gap-group').forEach(function(group) {
+        var visible = group.querySelectorAll('.question-item:not([style*="display: none"])');
+        group.style.display = visible.length > 0 ? '' : 'none';
+
+        // Auto-expand khi có kết quả tìm kiếm
+        if (query !== '' && visible.length > 0) {
+            var body = group.querySelector('.gap-group-body');
+            var icon = group.querySelector('.gap-expand-icon');
+            if (body && !body.classList.contains('open')) {
+                body.classList.add('open');
+                if (icon) icon.textContent = '▼';
+            }
+        }
+    });
+});
+
+// Init
+updateCounters();
+</script>
 {% endblock %}

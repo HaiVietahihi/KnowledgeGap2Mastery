@@ -9,13 +9,14 @@
 </div>
 
 <div class="page-header">
-    <h1>📊 Dashboard Learning Opportunities</h1>
+    <h1>Dashboard Learning Opportunities</h1>
     <div class="header-actions">
         {% if opportunities %}
-        <a href="{{ url_for('generation.create_assignment', course_id=course.id) }}" class="btn btn-accent" style="margin-right: 10px;">✨ Tạo Bài Tập</a>
+        <a href="{{ url_for('generation.question_bank', course_id=course.id) }}" class="btn btn-primary" style="margin-right: 6px;">Ngân hàng câu hỏi</a>
+        <a href="{{ url_for('generation.create_assignment', course_id=course.id) }}" class="btn btn-accent" style="margin-right: 10px;">Tạo Bài Tập</a>
         {% endif %}
-        <a href="{{ url_for('analytics.dashboard', course_id=course.id) }}" class="btn" style="background:#7c3aed;color:#fff;border-color:#7c3aed;">📊 Analytics</a>
-        <a href="{{ url_for('discovery.run', course_id=course.id) }}" class="btn">🔍 Phát hiện lỗ hổng</a>
+        <a href="{{ url_for('analytics.dashboard', course_id=course.id) }}" class="btn" style="background:#7c3aed;color:#fff;border-color:#7c3aed;">Analytics</a>
+        <a href="{{ url_for('discovery.run', course_id=course.id) }}" class="btn">Phát hiện lỗ hổng</a>
     </div>
 </div>
 
@@ -41,7 +42,7 @@
                     <td style="padding: 8px;"><strong>{{ gap.title }}</strong></td>
                     <td style="padding: 8px; color: #555;">{{ gap.description or '—' }}</td>
                     <td style="padding: 8px;">
-                        <a href="{{ url_for('generation.generate', course_id=course.id, gap=gap.title) }}" class="btn btn-sm btn-accent">✨ Sinh bài tập</a>
+                        <a href="{{ url_for('generation.generate', course_id=course.id, gap=gap.title, gap_id=gap.id) }}" class="btn btn-sm btn-accent">Sinh bài tập</a>
                     </td>
                 </tr>
                 {% endfor %}
@@ -55,41 +56,11 @@
     </div>
 </div>
 
-{% if opportunities %}
-<div class="card">
-    <div class="card-header">
-        <h3>Danh sách bài tập (LOP) dự kiến</h3>
-    </div>
-    <div class="card-body">
-        <table class="table" style="width: 100%; text-align: left; border-collapse: collapse;">
-            <thead>
-                <tr>
-                    <th style="border-bottom: 1px solid #ddd; padding: 8px;">ID</th>
-                    <th style="border-bottom: 1px solid #ddd; padding: 8px;">Loại bài tập</th>
-                    <th style="border-bottom: 1px solid #ddd; padding: 8px;">Thuộc lỗ hổng</th>
-                    <th style="border-bottom: 1px solid #ddd; padding: 8px;">Hành động</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for lop in opportunities %}
-                <tr>
-                    <td style="padding: 8px;">#{{ lop.id }}</td>
-                    <td style="padding: 8px;"><span class="badge">{{ lop.type | upper }}</span></td>
-                    <td style="padding: 8px;">{{ lop.gap.title }}</td>
-                    <td style="padding: 8px;">
-                        <a href="{{ url_for('generation.edit', lop_id=lop.id) }}" class="btn btn-sm btn-outline">Sửa JSON</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-{% else %}
+{% if not opportunities %}
 <div class="card">
     <div class="card-body">
         <div class="empty-state" style="padding: 40px;">
-            <div class="empty-icon">📊</div>
+            <div class="empty-icon"></div>
             <h3>Chưa có cơ hội học tập nào được sinh ra</h3>
             <p>Hãy chạy phát hiện lỗ hổng rồi sinh ra bài tập.</p>
             <div class="btn-row" style="justify-content: center;">
@@ -99,6 +70,7 @@
     </div>
 </div>
 {% endif %}
+
 
 {% if assignments %}
 <div class="card" style="margin-top: 20px;">

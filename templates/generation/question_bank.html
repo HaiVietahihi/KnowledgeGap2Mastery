@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% block title %}Ngân hàng câu hỏi — {{ course.name }}{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{{ url_for('index') }}">Trang chủ</a> /
+    <a href="{{ url_for('courses.detail', course_id=course.id) }}">{{ course.name }}</a> /
+    <a href="{{ url_for('generation.dashboard', course_id=course.id) }}">Dashboard LOP</a> /
+    Ngân hàng câu hỏi
+</div>
+
+<div class="page-header">
+    <h1>Ngân hàng câu hỏi</h1>
+    <div class="header-actions">
+        <a href="{{ url_for('generation.dashboard', course_id=course.id) }}" class="btn">← Dashboard</a>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="qbank-stats">
+    <div class="qbank-stat-card">
+        <span class="qbank-stat-num">{{ total_questions }}</span>
+        <span class="qbank-stat-label">Tổng câu hỏi</span>
+    </div>
+    <div class="qbank-stat-card">
+        <span class="qbank-stat-num">{{ gap_list|length }}</span>
+        <span class="qbank-stat-label">Lỗ hổng</span>
+    </div>
+</div>
+
+<!-- Filter bar -->
+<div class="qbank-filter-bar">
+    <label for="gap-filter">Lọc theo lỗ hổng:</label>
+    <select id="gap-filter" class="qbank-filter-select" onchange="filterByGap(this.value)">
+        <option value="">Tất cả lỗ hổng ({{ total_questions }} câu)</option>
+        {% for gap in gap_list %}
+        <option value="{{ gap.id }}" {% if selected_gap_id == gap.id %}selected{% endif %}>
+            {{ gap.title }} ({{ gap.q_count }} câu)
+        </option>
+        {% endfor %}
+    </select>
+    <div class="qbank-search">
+        <span class="qbank-search-icon">&#128269;</span>
+        <input type="text" class="qbank-search-input" id="qbank-search" placeholder="Tìm kiếm câu hỏi..." oninput="searchQuestions(this.value)">
+    </div>
+</div>
+
+{% if questions_by_gap %}
+{% for gap_info in questions_by_gap %}
+<div class="qbank-gap-section" data-gap-id="{{ gap_info.gap_id }}">
+    <div class="qbank-gap-header" onclick="toggleGapSection(this)">
+        <div class="qbank-gap-title">
+            <span class="qbank-gap-toggle open">&#9660;</span>
+            {{ gap_info.gap_title }}
+            <span class="qbank-gap-count">{{ gap_info.questions|length }} câu</span>
+        </div>
+    </div>
+    <div class="qbank-gap-body open">
+        {% for q in gap_info.questions %}
+        <!-- Display mode -->
+        <div class="qbank-question-card" id="q-display-{{ q.lop_id }}" data-question-text="{{ q.cau_hoi|lower }}">
+            <div class="qbank-q-header">
+                <span class="qbank-q-number">Câu #{{ q.lop_id }}</span>
+                <div class="qbank-q-actions">
+                    <button class="btn btn-sm btn-outline" onclick="toggleEdit({{ q.lop_id }})">Sửa</button>
+                    <button class="btn btn-sm btn-danger" onclick="confirmDelete({{ q.lop_id }}, '{{ q.cau_hoi[:50]|e }}')">Xóa</button>
+                </div>
+            </div>
+            <div class="qbank-q-text">{{ q.cau_hoi }}</div>
+            <div class="qbank-answers">
+                {% for key, val in q.dap_an.items() %}
+                <div class="qbank-answer {% if key == q.dap_an_dung %}correct{% endif %}">
+                    <span class="qbank-answer-key">{{ key }}.</span>
+                    <span>{{ val }}</span>
+                    {% if key == q.dap_an_dung %}
+                    <span class="qbank-answer-check">&#10003;</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% if q.giai_thich %}
+            <div class="qbank-explanation" style="margin-top: 10px;">
+                <strong>Giải thích:</strong> {{ q.giai_thich }}
+            </div>
+            {% endif %}
+            <div class="qbank-meta-row">
+                <span class="qbank-meta-badge">Bloom: {{ q.bloom_level or '—' }}</span>
+                <span class="qbank-meta-badge">Độ khó: {{ q.difficulty or '—' }}</span>
+            </div>
+        </div>
+
+        <!-- Edit form (hidden by default) -->
+        <div class="qbank-edit-form" id="q-edit-{{ q.lop_id }}">
+            <form method="POST" action="{{ url_for('generation.question_bank_edit', course_id=course.id, lop_id=q.lop_id) }}">
+                <div class="form-group">
+                    <label for="cau_hoi_{{ q.lop_id }}">Câu hỏi</label>
+                    <textarea id="cau_hoi_{{ q.lop_id }}" name="cau_hoi" rows="3">{{ q.cau_hoi }}</textarea>
+                </div>
+
+                <label style="font-size: 12px; font-weight: 600; color: var(--gray-600); margin-bottom: 8px; display: block;">Đáp án</label>
+                <div class="qbank-edit-answers">
+                    {% for key, val in q.dap_an.items() %}
+                    <div class="qbank-edit-answer-group">
+                        <span class="qbank-edit-answer-label">{{ key }}.</span>
+                        <input type="text" name="dap_an_{{ key }}" value="{{ val }}">
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px;">
+                    <div class="form-group">
+                        <label for="dap_an_dung_{{ q.lop_id }}">Đáp án đúng</label>
+                        <select id="dap_an_dung_{{ q.lop_id }}" name="dap_an_dung">
+                            {% for key in q.dap_an.keys() %}
+                            <option value="{{ key }}" {% if key == q.dap_an_dung %}selected{% endif %}>{{ key }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: flex-end;">
+                        <!-- spacer -->
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="giai_thich_{{ q.lop_id }}">Giải thích</label>
+                    <textarea id="giai_thich_{{ q.lop_id }}" name="giai_thich" rows="2">{{ q.giai_thich or '' }}</textarea>
+                </div>
+
+                <div class="btn-row">
+                    <button type="submit" class="btn btn-sm btn-accent">Lưu thay đổi</button>
+                    <button type="button" class="btn btn-sm" onclick="toggleEdit({{ q.lop_id }})">Hủy</button>
+                </div>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endfor %}
+{% else %}
+<div class="card">
+    <div class="card-body">
+        <div class="qbank-empty">
+            <h3>Chưa có câu hỏi nào</h3>
+            <p>Hãy sinh câu hỏi từ các lỗ hổng kiến thức đã phát hiện.</p>
+            <a href="{{ url_for('generation.dashboard', course_id=course.id) }}" class="btn btn-accent">← Quay lại Dashboard</a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Delete confirmation modal -->
+<div class="qbank-confirm-overlay" id="delete-modal">
+    <div class="qbank-confirm-box">
+        <h3>Xác nhận xóa</h3>
+        <p id="delete-modal-text">Bạn có chắc chắn muốn xóa câu hỏi này?</p>
+        <div class="qbank-confirm-actions">
+            <form method="POST" id="delete-form" action="">
+                <button type="submit" class="btn btn-danger">Xóa</button>
+            </form>
+            <button class="btn" onclick="closeDeleteModal()">Hủy</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterByGap(gapId) {
+    const url = new URL(window.location.href);
+    if (gapId) {
+        url.searchParams.set('gap_id', gapId);
+    } else {
+        url.searchParams.delete('gap_id');
+    }
+    window.location.href = url.toString();
+}
+
+function toggleGapSection(header) {
+    const body = header.nextElementSibling;
+    const toggle = header.querySelector('.qbank-gap-toggle');
+    body.classList.toggle('open');
+    toggle.classList.toggle('open');
+}
+
+function toggleEdit(lopId) {
+    const display = document.getElementById('q-display-' + lopId);
+    const editForm = document.getElementById('q-edit-' + lopId);
+    if (editForm.classList.contains('active')) {
+        editForm.classList.remove('active');
+        display.style.display = '';
+    } else {
+        editForm.classList.add('active');
+        display.style.display = 'none';
+    }
+}
+
+function confirmDelete(lopId, questionText) {
+    const modal = document.getElementById('delete-modal');
+    const form = document.getElementById('delete-form');
+    const text = document.getElementById('delete-modal-text');
+    text.textContent = 'Bạn có chắc chắn muốn xóa câu hỏi: "' + questionText + '..."?';
+    form.action = '{{ url_for("generation.question_bank_delete", course_id=course.id, lop_id=0) }}'.replace('/0', '/' + lopId);
+    modal.classList.add('active');
+}
+
+function closeDeleteModal() {
+    document.getElementById('delete-modal').classList.remove('active');
+}
+
+// Close modal on overlay click
+document.getElementById('delete-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeDeleteModal();
+});
+
+function searchQuestions(query) {
+    query = query.toLowerCase().trim();
+    const cards = document.querySelectorAll('.qbank-question-card');
+    const editForms = document.querySelectorAll('.qbank-edit-form');
+    
+    cards.forEach(function(card) {
+        const text = card.getAttribute('data-question-text') || '';
+        if (!query || text.includes(query)) {
+            card.style.display = '';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+
+    // Also hide sections with no visible questions
+    document.querySelectorAll('.qbank-gap-section').forEach(function(section) {
+        const visibleCards = section.querySelectorAll('.qbank-question-card:not([style*="display: none"])');
+        section.style.display = visibleCards.length > 0 || !query ? '' : 'none';
+    });
+}
+</script>
+{% endblock %}

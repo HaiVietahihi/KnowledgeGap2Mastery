@@ -7,7 +7,7 @@
 </div>
 
 <div class="page-header">
-    <h1>🔍 Khám phá khóa học</h1>
+    <h1>Khám phá khóa học</h1>
     <p>Tìm và tự tham gia các khóa học có sẵn trên hệ thống để nâng cao kiến thức.</p>
 </div>
 
@@ -16,7 +16,7 @@
     {% for course in available_courses %}
     <div class="card">
         <div class="card-header">
-            <h3><span class="course-icon">🎓</span> {{ course.name }}</h3>
+            <h3>{{ course.name }}</h3>
             <span class="badge">{{ course.code }}</span>
         </div>
         <div class="card-body">
@@ -34,7 +34,7 @@
 </div>
 {% else %}
 <div class="empty-state">
-    <div class="empty-icon">🎉</div>
+    <div class="empty-icon"></div>
     <h3>Tuyệt vời!</h3>
     <p>Bạn đã tham gia tất cả các khóa học có sẵn trên hệ thống.</p>
     <a href="{{ url_for('index') }}" class="btn btn-primary">Quay lại trang chủ</a>

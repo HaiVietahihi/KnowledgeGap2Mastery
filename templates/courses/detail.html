@@ -7,17 +7,17 @@
 </div>
 
 <div class="page-header">
-    <h1>🎓 {{ course.name }} <span class="badge">{{ course.code }}</span></h1>
+    <h1>{{ course.name }} <span class="badge">{{ course.code }}</span></h1>
     <div class="header-actions">
         {% if current_user.role == 'instructor' %}
-        <a href="{{ url_for('analytics.dashboard', course_id=course.id) }}" class="btn" style="background:#7c3aed;color:#fff;border-color:#7c3aed;">📊 Analytics</a>
-        <a href="{{ url_for('courses.upload', course_id=course.id) }}" class="btn btn-primary">📤 Upload tài liệu</a>
-        <a href="{{ url_for('discovery.run', course_id=course.id) }}" class="btn">🔍 Phát hiện lỗ hổng</a>
-        <a href="{{ url_for('generation.dashboard', course_id=course.id) }}" class="btn btn-accent">✨ Dashboard Cơ hội
+        <a href="{{ url_for('analytics.dashboard', course_id=course.id) }}" class="btn" style="background:#7c3aed;color:#fff;border-color:#7c3aed;">Analytics</a>
+        <a href="{{ url_for('courses.upload', course_id=course.id) }}" class="btn btn-primary">Upload tài liệu</a>
+        <a href="{{ url_for('discovery.run', course_id=course.id) }}" class="btn">Phát hiện lỗ hổng</a>
+        <a href="{{ url_for('generation.dashboard', course_id=course.id) }}" class="btn btn-accent">Dashboard Cơ hội
             học tập</a>
         {% elif current_user.role == 'student' %}
         {% if is_enrolled %}
-        <a href="{{ url_for('courses.ask_question', course_id=course.id) }}" class="btn btn-primary">❓ Đặt câu hỏi</a>
+        <a href="{{ url_for('courses.ask_question', course_id=course.id) }}" class="btn btn-primary">Đặt câu hỏi</a>
         {% else %}
         <form action="{{ url_for('courses.enroll', course_id=course.id) }}" method="POST" style="display:inline;">
             <button type="submit" class="btn btn-accent">Thêm vào khóa học của tôi</button>
@@ -29,7 +29,7 @@
 
 <div class="card">
     <div class="card-header">
-        <h3>📝 Mô tả khóa học</h3>
+        <h3>Mô tả khóa học</h3>
     </div>
     <div class="card-body">
         <p>{{ course.description or 'Chưa có mô tả.' }}</p>
@@ -38,7 +38,7 @@
 
 <div class="card">
     <div class="card-header">
-        <h3>📄 Tài liệu đã nạp ({{ documents|length }})</h3>
+        <h3>Tài liệu đã nạp ({{ documents|length }})</h3>
         {% if current_user.role == 'instructor' %}
         <a href="{{ url_for('courses.upload', course_id=course.id) }}" class="btn btn-sm btn-primary">+ Thêm</a>
         {% endif %}
@@ -87,10 +87,10 @@
         </table>
         {% else %}
         <div class="empty-state" style="padding: 30px;">
-            <div class="empty-icon">📭</div>
+            <div class="empty-icon"></div>
             <h3>Chưa có tài liệu</h3>
             <p>Upload file PDF để bắt đầu xây dựng cơ sở tri thức cho khóa học.</p>
-            <a href="{{ url_for('courses.upload', course_id=course.id) }}" class="btn btn-primary">📤 Upload ngay</a>
+            <a href="{{ url_for('courses.upload', course_id=course.id) }}" class="btn btn-primary">Upload ngay</a>
         </div>
         {% endif %}
     </div>
@@ -99,7 +99,7 @@
 {% if current_user.role == 'student' and is_enrolled %}
 <div class="card">
     <div class="card-header">
-        <h3>📝 Bài tập về nhà</h3>
+        <h3>Bài tập về nhà</h3>
     </div>
     <div class="card-body">
         {% if assignments %}
@@ -147,7 +147,7 @@
 {% if current_user.role == 'instructor' %}
 <div class="card">
     <div class="card-header">
-        <h3>❓ Câu hỏi sinh viên chờ xử lý</h3>
+        <h3>Câu hỏi sinh viên chờ xử lý</h3>
     </div>
     <div class="card-body">
         {% if questions %}
