@@ -66,26 +66,16 @@ def results(course_id, task_id):
     course = CourseRepo.get(course_id)
     task = get_task(task_id)
 
-    # Nếu task đã hoàn tất, lưu kết quả cho bước Refinement và DB
+    # Nếu task đã hoàn tất, chỉ mark questions as processed
+    # KHÔNG tự động lưu lỗ hổng vào DB — giảng viên sẽ chọn lỗ hổng cần lưu
     if task.get("status") == "done" and task.get("result"):
         save_discovery_results(course_id, task["result"])
         
-        # Mark questions as processed and save Knowledge Gaps
-        from database.repository import QuestionRepo, KnowledgeGapRepo
+        # Mark questions as processed
+        from database.repository import QuestionRepo
         pending_questions = QuestionRepo.get_pending_for_course(course_id)
         if pending_questions:
             QuestionRepo.mark_processed([q.id for q in pending_questions])
-            
-            categories = task["result"].get("knowledge_gaps", [])
-            for cat_data in categories:
-                title = cat_data.get("knowledge_gap")
-                if title:
-                    # Check if gap already exists
-                    from database.models import KnowledgeGap
-                    existing = KnowledgeGap.query.filter_by(course_id=course_id, title=title).first()
-                    if not existing:
-                        KnowledgeGapRepo.create(course_id, title, "Tự động phát hiện từ câu hỏi sinh viên")
-
 
     return render_template(
         "discovery/results.html",
@@ -93,3 +83,56 @@ def results(course_id, task_id):
         task_id=task_id,
         task=task,
     )
+
+
+@discovery_bp.route("/<course_id>/save-gaps", methods=["POST"])
+def save_gaps(course_id):
+    """Lưu các lỗ hổng kiến thức đã được giảng viên chọn vào DB."""
+    r = _require_login()
+    if r:
+        return r
+    
+    user = g.current_user
+    if user.role != "instructor":
+        flash("Chỉ giảng viên mới có chức năng này.", "error")
+        return redirect(url_for("courses.detail", course_id=course_id))
+
+    course = CourseRepo.get(course_id)
+    if not course:
+        flash("Không tìm thấy khóa học.", "error")
+        return redirect(url_for("index"))
+
+    # Lấy danh sách indices đã chọn
+    selected_indices = request.form.getlist("selected_gaps")
+    
+    if not selected_indices:
+        flash("Bạn chưa chọn lỗ hổng nào để lưu.", "warning")
+        return redirect(request.referrer or url_for("courses.detail", course_id=course_id))
+
+    from database.repository import KnowledgeGapRepo
+    from database.models import KnowledgeGap
+    
+    saved_count = 0
+    for idx_str in selected_indices:
+        try:
+            idx = int(idx_str)
+        except ValueError:
+            continue
+        
+        # Lấy tên đã sửa (nếu có)
+        edited_title = request.form.get(f"gap_title_{idx}", "").strip()
+        if not edited_title:
+            continue
+        
+        # Kiểm tra lỗ hổng đã tồn tại chưa
+        existing = KnowledgeGap.query.filter_by(course_id=course_id, title=edited_title).first()
+        if not existing:
+            KnowledgeGapRepo.create(course_id, edited_title, "Phát hiện từ câu hỏi sinh viên")
+            saved_count += 1
+
+    if saved_count > 0:
+        flash(f"Đã lưu {saved_count} lỗ hổng kiến thức vào hệ thống.", "success")
+    else:
+        flash("Không có lỗ hổng mới nào được lưu (có thể đã tồn tại).", "info")
+
+    return redirect(url_for("refinement.review", course_id=course_id))

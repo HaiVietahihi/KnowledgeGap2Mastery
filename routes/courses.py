@@ -92,8 +92,9 @@ def detail(course_id):
     documents = ingestion.list_documents(course_id)
     questions = QuestionRepo.get_all_for_course(course_id)
     
-    from database.repository import AssignmentRepo, AssignmentSubmissionRepo
+    from database.repository import AssignmentRepo, AssignmentSubmissionRepo, KnowledgeGapRepo
     assignments = AssignmentRepo.get_by_course(course_id)
+    knowledge_gaps = KnowledgeGapRepo.list_by_course(course_id)
     
     submissions = {}
     if user.role == "student":
@@ -108,7 +109,8 @@ def detail(course_id):
         is_enrolled=is_enrolled,
         questions=questions,
         assignments=assignments,
-        submissions=submissions
+        submissions=submissions,
+        knowledge_gaps=knowledge_gaps
     )
 
 @courses_bp.route("/<course_id>/enroll", methods=["POST"])
@@ -326,4 +328,56 @@ def upload(course_id):
             flash(f"❌ Upload thất bại: {e}", "error")
 
     return render_template("courses/upload.html", course=course)
+
+
+@courses_bp.route("/<course_id>/delete", methods=["POST"])
+def delete_course(course_id):
+    r = _require_login()
+    if r:
+        return r
+    user = g.current_user
+    if user.role != "instructor":
+        flash("Chỉ giảng viên mới có chức năng này.", "error")
+        return redirect(url_for("index"))
+
+    course = CourseRepo.get(course_id)
+    if not course:
+        flash("Không tìm thấy khóa học.", "error")
+        return redirect(url_for("index"))
+
+    if course.owner_id != user.id:
+        flash("Bạn không có quyền xóa khóa học này.", "error")
+        return redirect(url_for("index"))
+
+    # Xóa thư mục uploads
+    import shutil
+    upload_dir = os.path.join("uploads", course_id)
+    if os.path.exists(upload_dir):
+        shutil.rmtree(upload_dir, ignore_errors=True)
+
+    course_name = course.name
+    CourseRepo.delete(course_id)
+    flash(f'Đã xóa khóa học "{course_name}" thành công.', "success")
+    return redirect(url_for("index"))
+
+
+@courses_bp.route("/<course_id>/gap/<int:gap_id>/delete", methods=["POST"])
+def delete_gap(course_id, gap_id):
+    r = _require_login()
+    if r:
+        return r
+    user = g.current_user
+    if user.role != "instructor":
+        flash("Chỉ giảng viên mới có chức năng này.", "error")
+        return redirect(url_for("courses.detail", course_id=course_id))
+
+    from database.repository import KnowledgeGapRepo
+    gap = KnowledgeGapRepo.get(gap_id)
+    if gap and gap.course_id == course_id:
+        KnowledgeGapRepo.delete(gap_id)
+        flash(f'Đã xóa lỗ hổng kiến thức "{gap.title}".', "success")
+    else:
+        flash("Không tìm thấy lỗ hổng kiến thức.", "error")
+
+    return redirect(url_for("courses.detail", course_id=course_id))
 

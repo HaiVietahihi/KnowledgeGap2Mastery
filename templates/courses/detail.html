@@ -12,9 +12,13 @@
         {% if current_user.role == 'instructor' %}
         <a href="{{ url_for('analytics.dashboard', course_id=course.id) }}" class="btn" style="background:#7c3aed;color:#fff;border-color:#7c3aed;">Analytics</a>
         <a href="{{ url_for('courses.upload', course_id=course.id) }}" class="btn btn-primary">Upload tài liệu</a>
-        <a href="{{ url_for('discovery.run', course_id=course.id) }}" class="btn">Phát hiện lỗ hổng</a>
+        <a href="{{ url_for('discovery.run', course_id=course.id) }}" class="btn">Phát hiện kiến thức</a>
         <a href="{{ url_for('generation.dashboard', course_id=course.id) }}" class="btn btn-accent">Dashboard Cơ hội
             học tập</a>
+        <form action="{{ url_for('courses.delete_course', course_id=course.id) }}" method="POST" style="display:inline;"
+            onsubmit="return confirm('Bạn có chắc chắn muốn xóa toàn bộ khóa học này? Hành động này không thể hoàn tác.');">
+            <button type="submit" class="btn btn-sm btn-danger">Xóa khóa học</button>
+        </form>
         {% elif current_user.role == 'student' %}
         {% if is_enrolled %}
         <a href="{{ url_for('courses.ask_question', course_id=course.id) }}" class="btn btn-primary">Đặt câu hỏi</a>
@@ -77,7 +81,7 @@
                     {% if current_user.role == 'instructor' %}
                     <td>
                         <form action="{{ url_for('courses.delete_document', course_id=course.id, doc_id=doc.doc_id) }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn xóa tài liệu này không?');">
-                            <button type="submit" class="btn btn-sm btn-outline" style="color: red; border-color: red;">Xóa</button>
+                            <button type="submit" class="btn btn-sm btn-danger">Xóa</button>
                         </form>
                     </td>
                     {% endif %}
@@ -168,6 +172,45 @@
         </div>
         {% else %}
         <p class="muted">Chưa có câu hỏi nào từ sinh viên.</p>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+{% if current_user.role == 'instructor' %}
+<div class="card">
+    <div class="card-header">
+        <h3>Lỗ hổng kiến thức đã lưu ({{ knowledge_gaps|length }})</h3>
+    </div>
+    <div class="card-body">
+        {% if knowledge_gaps %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Tên lỗ hổng</th>
+                    <th>Mô tả</th>
+                    <th>Ngày phát hiện</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for gap in knowledge_gaps %}
+                <tr>
+                    <td><strong>{{ gap.title }}</strong></td>
+                    <td class="muted">{{ gap.description or '—' }}</td>
+                    <td class="muted">{{ gap.created_at.strftime('%d/%m/%Y %H:%M') if gap.created_at else '—' }}</td>
+                    <td>
+                        <form action="{{ url_for('courses.delete_gap', course_id=course.id, gap_id=gap.id) }}" method="POST"
+                            onsubmit="return confirm('Xóa lỗ hổng kiến thức này? Các LOP liên quan cũng sẽ bị xóa.');" style="display:inline;">
+                            <button type="submit" class="btn btn-sm btn-danger">Xóa</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="muted">Chưa có lỗ hổng kiến thức nào được lưu. Hãy chạy phát hiện lỗ hổng và duyệt kết quả.</p>
         {% endif %}
     </div>
 </div>

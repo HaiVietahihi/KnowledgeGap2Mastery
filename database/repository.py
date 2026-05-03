@@ -90,6 +90,19 @@ class CourseRepo:
         db.session.commit()
         return course
 
+    @classmethod
+    def delete(cls, course_id):
+        from database.models import db, Course, enrollments
+        course = Course.query.get(course_id)
+        if not course:
+            return False
+        # Clear enrollments (many-to-many)
+        db.session.execute(enrollments.delete().where(enrollments.c.course_id == course_id))
+        # Cascade delete handled by SQLAlchemy relationships
+        db.session.delete(course)
+        db.session.commit()
+        return True
+
 class QuestionRepo:
     @classmethod
     def create(cls, course_id, student_id, content):
@@ -128,6 +141,26 @@ class KnowledgeGapRepo:
         db.session.add(gap)
         db.session.commit()
         return gap
+
+    @classmethod
+    def get(cls, gap_id):
+        from database.models import KnowledgeGap
+        return KnowledgeGap.query.get(gap_id)
+
+    @classmethod
+    def list_by_course(cls, course_id):
+        from database.models import KnowledgeGap
+        return KnowledgeGap.query.filter_by(course_id=course_id).order_by(KnowledgeGap.created_at.desc()).all()
+
+    @classmethod
+    def delete(cls, gap_id):
+        from database.models import db, KnowledgeGap
+        gap = KnowledgeGap.query.get(gap_id)
+        if gap:
+            db.session.delete(gap)
+            db.session.commit()
+            return True
+        return False
 
 class LearningOpportunityRepo:
     @classmethod

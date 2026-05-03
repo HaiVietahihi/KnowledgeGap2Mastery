@@ -101,14 +101,19 @@ def ChatGPT_API(model, prompt, api_key=CHATGPT_API_KEY, chat_history=None):
                 return "Error"
             
 
-ollama_semaphore = asyncio.Semaphore(5)
+def _get_ollama_semaphore():
+    """Lazily create a Semaphore bound to the current running event loop."""
+    loop = asyncio.get_running_loop()
+    if not hasattr(loop, '_ollama_semaphore'):
+        loop._ollama_semaphore = asyncio.Semaphore(5)
+    return loop._ollama_semaphore
 
 async def ChatGPT_API_async(model, prompt, api_key=CHATGPT_API_KEY):
     max_retries = 10
     messages = [{"role": "user", "content": prompt}]
     for i in range(max_retries):
         try:
-            async with ollama_semaphore:
+            async with _get_ollama_semaphore():
                 async with openai.AsyncOpenAI(base_url=os.getenv("OPENAI_BASE_URL", "https://research.neu.edu.vn/ollama/v1"), api_key=api_key or "neu_ollama", timeout=300.0) as client:
                     response = await client.chat.completions.create(
                         model=model,
