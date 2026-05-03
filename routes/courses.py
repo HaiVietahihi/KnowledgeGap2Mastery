@@ -5,7 +5,7 @@ Quản lý khóa học: danh sách, chi tiết, upload tài liệu.
 
 import os
 from flask import (Blueprint, render_template, request, redirect,
-                   url_for, flash, g)
+                   url_for, flash, g, send_from_directory)
 from database.repository import CourseRepo, QuestionRepo
 from database.models import db, User
 from services import get_services
@@ -259,6 +259,36 @@ def ask_question(course_id):
         return redirect(url_for("courses.ask_question", course_id=course_id))
             
     return render_template("courses/ask.html", course=course, documents=documents, history=history)
+
+
+@courses_bp.route("/<course_id>/document/<doc_id>/view")
+def view_document(course_id, doc_id):
+    r = _require_login()
+    if r:
+        return r
+    course = CourseRepo.get(course_id)
+    if not course:
+        flash("Không tìm thấy khóa học.", "error")
+        return redirect(url_for("index"))
+
+    user = g.current_user
+    # Kiểm tra quyền: instructor hoặc sinh viên đã enroll
+    if user.role == "student" and course not in user.enrolled_courses:
+        flash("Bạn chưa tham gia khóa học này.", "error")
+        return redirect(url_for("courses.detail", course_id=course_id))
+
+    from database.repository import DocumentRepo
+    doc = DocumentRepo.get(doc_id)
+    if not doc or doc.course_id != course_id:
+        flash("Không tìm thấy tài liệu.", "error")
+        return redirect(url_for("courses.detail", course_id=course_id))
+
+    upload_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "uploads", course_id)
+    if not os.path.exists(os.path.join(upload_dir, doc.file_name)):
+        flash("File không tồn tại trên hệ thống.", "error")
+        return redirect(url_for("courses.detail", course_id=course_id))
+
+    return send_from_directory(upload_dir, doc.file_name)
 
 
 @courses_bp.route("/<course_id>/document/<doc_id>/delete", methods=["POST"])

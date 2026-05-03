@@ -57,9 +57,7 @@
                     <th>Trạng thái</th>
                     <th>Số trang</th>
                     <th>Ngày upload</th>
-                    {% if current_user.role == 'instructor' %}
                     <th>Hành động</th>
-                    {% endif %}
                 </tr>
             </thead>
             <tbody>
@@ -78,13 +76,16 @@
                     </td>
                     <td>{{ doc.get('page_count', '—') }}</td>
                     <td class="muted">{{ doc.get('uploaded_at', '—') }}</td>
-                    {% if current_user.role == 'instructor' %}
                     <td>
-                        <form action="{{ url_for('courses.delete_document', course_id=course.id, doc_id=doc.doc_id) }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn xóa tài liệu này không?');">
+                        {% if doc.status == 'completed' %}
+                        <a href="{{ url_for('courses.view_document', course_id=course.id, doc_id=doc.doc_id) }}" target="_blank" class="btn btn-sm btn-primary">Xem</a>
+                        {% endif %}
+                        {% if current_user.role == 'instructor' %}
+                        <form action="{{ url_for('courses.delete_document', course_id=course.id, doc_id=doc.doc_id) }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn xóa tài liệu này không?');" style="display:inline;">
                             <button type="submit" class="btn btn-sm btn-danger">Xóa</button>
                         </form>
+                        {% endif %}
                     </td>
-                    {% endif %}
                 </tr>
                 {% endfor %}
             </tbody>
