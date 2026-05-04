@@ -35,82 +35,7 @@
     setTimeout(function () { location.reload(); }, 5000);
 </script>
 
-{% elif task.status == 'done' %}
-{% set result = task.result %}
 
-<div class="info-box" style="margin-bottom: 20px;">
-    <strong>Hệ thống đã phát hiện {{ result.knowledge_gaps|length }} lỗ hổng kiến thức.</strong>
-    Hãy xem xét, chỉnh sửa tên nếu cần, và <strong>chọn các lỗ hổng bạn muốn lưu</strong> vào hệ thống.
-    Các lỗ hổng không được chọn sẽ không được lưu.
-</div>
-
-<form method="POST" action="{{ url_for('discovery.save_gaps', course_id=course.id) }}">
-
-    <!-- Toolbar -->
-    <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 16px; flex-wrap: wrap;">
-        <button type="button" class="btn btn-sm" onclick="toggleAllGaps(true)">Chọn tất cả</button>
-        <button type="button" class="btn btn-sm btn-outline" onclick="toggleAllGaps(false)">Bỏ chọn tất cả</button>
-        <span class="muted" id="selectedCount">Đã chọn: 0 / {{ result.knowledge_gaps|length }}</span>
-        <div style="flex: 1;"></div>
-        <button type="submit" class="btn btn-accent">Lưu các lỗ hổng đã chọn</button>
-    </div>
-
-    <div class="card" style="margin-bottom: 20px;">
-        <div class="card-header">
-            <h3>Lỗ hổng kiến thức đã phát hiện ({{ result.knowledge_gaps|length }})</h3>
-        </div>
-        <div class="card-body" style="padding: 0;">
-            {% for gap in result.knowledge_gaps %}
-            <div class="gap-review-item" style="padding: 16px 20px; border-bottom: 1px solid var(--gray-100); {% if not loop.last %}{% endif %}">
-                <div style="display: flex; align-items: flex-start; gap: 12px;">
-                    <!-- Checkbox -->
-                    <div style="padding-top: 4px;">
-                        <input type="checkbox" name="selected_gaps" value="{{ loop.index0 }}" id="gap_check_{{ loop.index0 }}"
-                            class="gap-checkbox" checked onchange="updateSelectedCount()"
-                            style="width: 18px; height: 18px; cursor: pointer;">
-                    </div>
-
-                    <!-- Content -->
-                    <div style="flex: 1;">
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
-                            <!-- Editable title -->
-                            <input type="text" name="gap_title_{{ loop.index0 }}" value="{{ gap.knowledge_gap }}"
-                                style="flex: 1; min-width: 200px; padding: 6px 10px; font-size: 14px; font-weight: 600; border: 1px solid var(--gray-200); border-radius: var(--radius); background: var(--gray-50);">
-                            <span class="coverage-badge">{{ gap.coverage }} bài đăng</span>
-                            {% if gap.cohesion == 'Cao' %}
-                            <span class="cohesion-badge cohesion-high">Nhất quán: Cao</span>
-                            {% elif gap.cohesion == 'Thấp' %}
-                            <span class="cohesion-badge cohesion-low">Nhất quán: Thấp</span>
-                            {% else %}
-                            <span class="cohesion-badge cohesion-medium">Nhất quán: TB</span>
-                            {% endif %}
-                        </div>
-
-                        {% if gap.posts %}
-                        <div style="margin-top: 4px;">
-                            <p class="muted" style="margin-bottom: 4px; font-size: 13px;">Bài đăng liên quan:</p>
-                            {% for post in gap.posts[:3] %}
-                            <div class="post-item" style="font-size: 13px;">{{ post }}</div>
-                            {% endfor %}
-                            {% if gap.posts|length > 3 %}
-                            <p class="muted" style="font-size: 12px;">... và {{ gap.posts|length - 3 }} bài đăng khác</p>
-                            {% endif %}
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-
-    <!-- Bottom action bar -->
-    <div style="display: flex; gap: 12px; justify-content: center; margin-top: 16px; flex-wrap: wrap;">
-        <button type="submit" class="btn btn-accent btn-lg">Lưu các lỗ hổng đã chọn</button>
-        <a href="{{ url_for('refinement.review', course_id=course.id) }}" class="btn">Chuyển sang Chuyên gia duyệt</a>
-        <a href="{{ url_for('courses.detail', course_id=course.id) }}" class="btn btn-outline">← Quay lại khóa học</a>
-    </div>
-</form>
 
 {% elif task.status == 'error' %}
 <div class="alert alert-error">
@@ -124,26 +49,4 @@
 </div>
 <a href="{{ url_for('discovery.run', course_id=course.id) }}" class="btn btn-primary">Phân tích lại</a>
 {% endif %}
-{% endblock %}
-
-{% block scripts %}
-<script>
-    function toggleAllGaps(checked) {
-        var checkboxes = document.querySelectorAll('.gap-checkbox');
-        checkboxes.forEach(function (cb) { cb.checked = checked; });
-        updateSelectedCount();
-    }
-
-    function updateSelectedCount() {
-        var total = document.querySelectorAll('.gap-checkbox').length;
-        var selected = document.querySelectorAll('.gap-checkbox:checked').length;
-        var el = document.getElementById('selectedCount');
-        if (el) {
-            el.textContent = 'Đã chọn: ' + selected + ' / ' + total;
-        }
-    }
-
-    // Initialize count on page load
-    document.addEventListener('DOMContentLoaded', updateSelectedCount);
-</script>
 {% endblock %}

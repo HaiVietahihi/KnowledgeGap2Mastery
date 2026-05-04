@@ -178,44 +178,7 @@
 </div>
 {% endif %}
 
-{% if current_user.role == 'instructor' %}
-<div class="card">
-    <div class="card-header">
-        <h3>Lỗ hổng kiến thức đã lưu ({{ knowledge_gaps|length }})</h3>
-    </div>
-    <div class="card-body">
-        {% if knowledge_gaps %}
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Tên lỗ hổng</th>
-                    <th>Mô tả</th>
-                    <th>Ngày phát hiện</th>
-                    <th>Hành động</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for gap in knowledge_gaps %}
-                <tr>
-                    <td><strong>{{ gap.title }}</strong></td>
-                    <td class="muted">{{ gap.description or '—' }}</td>
-                    <td class="muted">{{ gap.created_at.strftime('%d/%m/%Y %H:%M') if gap.created_at else '—' }}</td>
-                    <td>
-                        <form action="{{ url_for('courses.delete_gap', course_id=course.id, gap_id=gap.id) }}" method="POST"
-                            onsubmit="return confirm('Xóa lỗ hổng kiến thức này? Các LOP liên quan cũng sẽ bị xóa.');" style="display:inline;">
-                            <button type="submit" class="btn btn-sm btn-danger">Xóa</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        {% else %}
-        <p class="muted">Chưa có lỗ hổng kiến thức nào được lưu. Hãy chạy phát hiện lỗ hổng và duyệt kết quả.</p>
-        {% endif %}
-    </div>
-</div>
-{% endif %}
+
 
 <script>
     (function () {

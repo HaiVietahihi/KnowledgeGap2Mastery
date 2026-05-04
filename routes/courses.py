@@ -399,7 +399,7 @@ def delete_gap(course_id, gap_id):
     user = g.current_user
     if user.role != "instructor":
         flash("Chỉ giảng viên mới có chức năng này.", "error")
-        return redirect(url_for("courses.detail", course_id=course_id))
+        return redirect(url_for("generation.dashboard", course_id=course_id))
 
     from database.repository import KnowledgeGapRepo
     gap = KnowledgeGapRepo.get(gap_id)
@@ -409,5 +409,5 @@ def delete_gap(course_id, gap_id):
     else:
         flash("Không tìm thấy lỗ hổng kiến thức.", "error")
 
-    return redirect(url_for("courses.detail", course_id=course_id))
+    return redirect(url_for("generation.dashboard", course_id=course_id))
 

@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-_MIN_INTERVAL = 7.0
+_MIN_INTERVAL = 0.0
 _last_call_time = 0.0
 
 # Đọc cấu hình Ollama từ biến môi trường

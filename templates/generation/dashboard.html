@@ -33,6 +33,7 @@
                     <th style="border-bottom: 1px solid #ddd; padding: 8px;">Lỗ hổng</th>
                     <th style="border-bottom: 1px solid #ddd; padding: 8px;">Mô tả</th>
                     <th style="border-bottom: 1px solid #ddd; padding: 8px;">Hành động</th>
+                    <th style="border-bottom: 1px solid #ddd; padding: 8px;"></th>
                 </tr>
             </thead>
             <tbody>
@@ -43,6 +44,12 @@
                     <td style="padding: 8px; color: #555;">{{ gap.description or '—' }}</td>
                     <td style="padding: 8px;">
                         <a href="{{ url_for('generation.generate', course_id=course.id, gap=gap.title, gap_id=gap.id) }}" class="btn btn-sm btn-accent">Sinh bài tập</a>
+                    </td>
+                    <td style="padding: 8px; width: 60px;">
+                        <form action="{{ url_for('courses.delete_gap', course_id=course.id, gap_id=gap.id) }}" method="POST"
+                            onsubmit="return confirm('Xóa lỗ hổng kiến thức này? Các bài tập (LOP) liên quan cũng sẽ bị xóa.');" style="margin: 0;">
+                            <button type="submit" class="btn btn-sm btn-danger">Xóa</button>
+                        </form>
                     </td>
                 </tr>
                 {% endfor %}

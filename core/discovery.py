@@ -97,9 +97,10 @@ CÁC BÀI ĐĂNG CỦA SINH VIÊN:
 QUY TẮC PHÂN TÍCH CHO MỖI BÀI:
 1. Nếu bài đăng là câu hỏi hành chính (hạn nộp bài, lịch học, kỹ thuật đăng nhập...) → Mảng rỗng hoặc ghi "Không có lỗ hổng kiến thức".
 2. Nếu sinh viên chỉ chào hỏi hoặc cảm ơn → Mảng rỗng hoặc ghi "Không có lỗ hổng kiến thức".
-3. Nếu bài đăng chứa nhiều câu hỏi về nhiều khía cạnh khác nhau, hãy liệt kê tách biệt từng lỗ hổng kiến thức. Hãy mô tả KHÁI NIỆM cụ thể mà sinh viên chưa hiểu. Lỗ hổng cần là một câu duy nhất.
-4. Viết bằng tiếng Việt.
-5. Nếu KHÔNG có lỗ hổng: mảng kết quả của bài đó chứa đúng 1 chuỗi "Không có lỗ hổng kiến thức".
+3. CHÚ Ý QUAN TRỌNG: Nếu bài đăng hỏi về một kiến thức HOÀN TOÀN KHÔNG CÓ trong NỘI DUNG TÀI LIỆU KHÓA HỌC LIÊN QUAN (kiến thức ngoài luồng, không thuộc phạm vi môn học), hãy ghi "Không có lỗ hổng kiến thức".
+4. Nếu bài đăng chứa nhiều câu hỏi về nhiều khía cạnh khác nhau thuộc môn học, hãy liệt kê tách biệt từng lỗ hổng kiến thức. Hãy mô tả KHÁI NIỆM cụ thể mà sinh viên chưa hiểu. Lỗ hổng cần là một câu duy nhất.
+5. Viết bằng tiếng Việt.
+6. Nếu KHÔNG có lỗ hổng: mảng kết quả của bài đó chứa đúng 1 chuỗi "Không có lỗ hổng kiến thức".
 
 ĐẦU RA (bắt buộc):
 Hãy trả về một MẢNG LỚN chứa các MẢNG NHỎ, mỗi mảng con tương ứng với danh sách lỗ hổng của 1 bài đăng theo thứ tự.
@@ -239,13 +240,13 @@ Với mỗi bài đăng, xác định bài đăng đó thuộc danh mục nào (
 
 QUY TẮC PHÂN LOẠI:
 1. Chỉ gán danh mục nếu bài đăng THỰC SỰ thể hiện lỗ hổng kiến thức đó.
-2. Nếu bài đăng không có lỗ hổng kiến thức nào (hành chính, chào hỏi...) → "categories" để rỗng [].
+2. Nếu bài đăng không có lỗ hổng kiến thức nào (hành chính, chào hỏi, không thuộc phạm vi môn học...) → "categories" để rỗng [], "has_gap": false, và cung cấp "reason" giải thích tại sao câu hỏi không được đưa vào phân tích lỗ hổng.
 3. Gán TÊN DANH MỤC CHÍNH XÁC như trong danh sách trên (không viết tắt, không sửa).
 
 TRẢ VỀ: Chỉ một mảng JSON hợp lệ theo định dạng sau, không giải thích:
 [
-  {{"post_index": 1, "categories": ["Tên danh mục chính xác"], "has_gap": true}},
-  {{"post_index": 2, "categories": [], "has_gap": false}}
+  {{"post_index": 1, "categories": ["Tên danh mục chính xác"], "has_gap": true, "reason": ""}},
+  {{"post_index": 2, "categories": [], "has_gap": false, "reason": "Câu hỏi hỏi về lịch thi, không liên quan đến chuyên môn môn học"}}
 ]
 
 JSON:"""
@@ -263,6 +264,7 @@ JSON:"""
                                     "post": batch[j],
                                     "categories": r.get("categories", []),
                                     "has_gap": r.get("has_gap", False),
+                                    "reason": r.get("reason", ""),
                                 }
                             )
                     continue
@@ -270,7 +272,7 @@ JSON:"""
                     logger.warning(f"JSON decode error in classify_posts batch {i}, using fallback.")
 
             for p in batch:
-                classified.append({"post": p, "categories": [], "has_gap": False})
+                classified.append({"post": p, "categories": [], "has_gap": False, "reason": "Lỗi phân tích"})
 
         return classified
 

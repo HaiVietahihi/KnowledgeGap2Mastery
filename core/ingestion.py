@@ -204,7 +204,7 @@ class CourseIngestion:
 
     # ── RAG: Truy vấn nội dung khóa học từ Database ──────────────────────────
 
-    def _build_toc_context(self, course_id: str, max_depth: int = 3, max_tokens: int = 10000) -> str:
+    def _build_toc_context(self, course_id: str, max_depth: int = 3, max_tokens: int = 20000) -> str:
         """Tái tạo cây mục lục (ToC) JSON cho LLM từ cơ sở dữ liệu để chọn node."""
         from database.repository import DocumentNodeRepo
         all_nodes = DocumentNodeRepo.get_all_by_course(course_id)
@@ -243,7 +243,7 @@ class CourseIngestion:
         from database.repository import DocumentNodeRepo, DocumentRepo
         from core.utils import generate_with_retry
 
-        toc_json = self._build_toc_context(course_id, max_depth=3, max_tokens=10000)
+        toc_json = self._build_toc_context(course_id, max_depth=3, max_tokens=20000)
         if not toc_json:
             return "Chưa có tài liệu nào được nạp cho khóa học này.", []
 

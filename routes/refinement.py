@@ -36,10 +36,15 @@ def review(course_id):
         flash("Chưa có kết quả phân tích. Vui lòng chạy phát hiện lỗ hổng trước.", "warning")
         return redirect(url_for("discovery.run", course_id=course_id))
 
+    # Lọc ra các câu hỏi bị loại (has_gap = False)
+    classified_posts = discovery_data.get("classified_posts", [])
+    excluded_posts = [p for p in classified_posts if not p.get("has_gap", False)]
+
     return render_template(
         "refinement/review.html",
         course=course,
         knowledge_gaps=discovery_data.get("knowledge_gaps", []),
+        excluded_posts=excluded_posts,
     )
 
 
@@ -109,36 +114,39 @@ def update(course_id):
         else:
             flash("Vui lòng chọn ít nhất 2 lỗ hổng và nhập tên mới để gộp.", "error")
 
-    # Lưu lại
+    elif action == "save_to_db":
+        indices_raw = request.form.get("save_indices", "")
+        try:
+            indices = sorted([int(i) for i in indices_raw.split(",") if i.strip()], reverse=True)
+        except ValueError:
+            indices = []
+
+        if indices:
+            from database.repository import KnowledgeGapRepo
+            from database.models import KnowledgeGap
+            saved_count = 0
+            
+            for idx in indices:
+                if 0 <= idx < len(gaps):
+                    gap_data = gaps[idx]
+                    title = gap_data["knowledge_gap"]
+                    existing = KnowledgeGap.query.filter_by(course_id=course_id, title=title).first()
+                    if not existing:
+                        KnowledgeGapRepo.create(course_id, title, "Phát hiện từ câu hỏi sinh viên")
+                        saved_count += 1
+                    # Remove from temp list so it doesn't show up again
+                    gaps.pop(idx)
+                    
+            if saved_count > 0:
+                flash(f"Đã lưu {saved_count} lỗ hổng vào hệ thống.", "success")
+                return redirect(url_for("courses.detail", course_id=course_id))
+            else:
+                flash("Các lỗ hổng đã chọn có thể đã tồn tại trong hệ thống.", "info")
+        else:
+            flash("Vui lòng chọn ít nhất 1 lỗ hổng để lưu.", "error")
+
+    # Lưu lại trạng thái của danh sách tạm (nếu chỉ đổi tên, xóa, gộp)
     discovery_data["knowledge_gaps"] = gaps
     save_discovery_results(course_id, discovery_data)
 
     return redirect(url_for("refinement.review", course_id=course_id))
-
-
-@refinement_bp.route("/<course_id>/confirm", methods=["POST"])
-def confirm(course_id):
-    """Xác nhận duyệt xong → chuyển sang sinh LOP."""
-    r = _require_login()
-    if r:
-        return r
-
-    discovery_data = get_discovery_results(course_id)
-    if not discovery_data or not discovery_data.get("knowledge_gaps"):
-        flash("Không có lỗ hổng nào để sinh LOP.", "error")
-        return redirect(url_for("refinement.review", course_id=course_id))
-
-    # Lấy gap đầu tiên hoặc gap được chọn
-    selected_idx = int(request.form.get("selected_gap", 0))
-    gaps = discovery_data["knowledge_gaps"]
-    if selected_idx >= len(gaps):
-        selected_idx = 0
-
-    gap = gaps[selected_idx]
-    # Chuyển qua trang sinh LOP với gap và posts đã duyệt
-    sample_posts = "\n\n".join(gap.get("posts", [])[:5])
-    return redirect(
-        url_for("generation.generate", course_id=course_id,
-                gap=gap["knowledge_gap"],
-                sample_posts=sample_posts)
-    )

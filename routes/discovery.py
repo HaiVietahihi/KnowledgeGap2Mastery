@@ -30,14 +30,22 @@ def run(course_id):
 
     if request.method == "POST":
         from database.repository import QuestionRepo
-        pending_questions = QuestionRepo.get_pending_for_course(course_id)
+        question_ids_str = request.form.getlist("question_ids")
         
-        if not pending_questions:
-            flash("Không có câu hỏi mới nào của sinh viên để phân tích.", "info")
+        if not question_ids_str:
+            flash("Bạn chưa chọn câu hỏi nào để phân tích.", "warning")
+            return redirect(url_for("discovery.run", course_id=course_id))
+
+        selected_ids = [int(qid) for qid in question_ids_str if qid.isdigit()]
+        all_questions = QuestionRepo.get_all_for_course(course_id)
+        selected_questions = [q for q in all_questions if q.id in selected_ids]
+        
+        if not selected_questions:
+            flash("Không có câu hỏi hợp lệ nào được chọn.", "info")
             return redirect(url_for("courses.detail", course_id=course_id))
             
-        posts = [q.content for q in pending_questions]
-        question_ids = [q.id for q in pending_questions]
+        posts = [q.content for q in selected_questions]
+        question_ids = [q.id for q in selected_questions]
 
         task_id = f"discovery-{uuid.uuid4().hex[:8]}"
         _, discovery, _ = get_services()
@@ -51,11 +59,15 @@ def run(course_id):
         run_task(task_id, do_discovery)
         session["last_discovery_task"] = task_id
         session["last_discovery_course"] = course_id
+        
+        # Save question IDs to session so we can mark them as processed later
+        session[f"discovery_{task_id}_questions"] = question_ids
+        
         return redirect(url_for("discovery.results", course_id=course_id, task_id=task_id))
 
     from database.repository import QuestionRepo
-    pending_questions = QuestionRepo.get_pending_for_course(course_id)
-    return render_template("discovery/run.html", course=course, pending_questions=pending_questions)
+    all_questions = QuestionRepo.get_all_for_course(course_id)
+    return render_template("discovery/run.html", course=course, all_questions=all_questions)
 
 
 @discovery_bp.route("/<course_id>/results/<task_id>")
@@ -66,16 +78,19 @@ def results(course_id, task_id):
     course = CourseRepo.get(course_id)
     task = get_task(task_id)
 
-    # Nếu task đã hoàn tất, chỉ mark questions as processed
-    # KHÔNG tự động lưu lỗ hổng vào DB — giảng viên sẽ chọn lỗ hổng cần lưu
+    # Nếu task đã hoàn tất, tự động lưu lỗ hổng vào DB và chuyển sang chuyên gia duyệt
     if task.get("status") == "done" and task.get("result"):
         save_discovery_results(course_id, task["result"])
         
-        # Mark questions as processed
-        from database.repository import QuestionRepo
-        pending_questions = QuestionRepo.get_pending_for_course(course_id)
-        if pending_questions:
-            QuestionRepo.mark_processed([q.id for q in pending_questions])
+        # Mark selected questions as processed
+        from database.repository import QuestionRepo, KnowledgeGapRepo
+        from database.models import KnowledgeGap
+        question_ids = session.get(f"discovery_{task_id}_questions", [])
+        if question_ids:
+            QuestionRepo.mark_processed(question_ids)
+            
+        # Redirect directly to refinement review
+        return redirect(url_for("refinement.review", course_id=course_id))
 
     return render_template(
         "discovery/results.html",
@@ -83,56 +98,3 @@ def results(course_id, task_id):
         task_id=task_id,
         task=task,
     )
-
-
-@discovery_bp.route("/<course_id>/save-gaps", methods=["POST"])
-def save_gaps(course_id):
-    """Lưu các lỗ hổng kiến thức đã được giảng viên chọn vào DB."""
-    r = _require_login()
-    if r:
-        return r
-    
-    user = g.current_user
-    if user.role != "instructor":
-        flash("Chỉ giảng viên mới có chức năng này.", "error")
-        return redirect(url_for("courses.detail", course_id=course_id))
-
-    course = CourseRepo.get(course_id)
-    if not course:
-        flash("Không tìm thấy khóa học.", "error")
-        return redirect(url_for("index"))
-
-    # Lấy danh sách indices đã chọn
-    selected_indices = request.form.getlist("selected_gaps")
-    
-    if not selected_indices:
-        flash("Bạn chưa chọn lỗ hổng nào để lưu.", "warning")
-        return redirect(request.referrer or url_for("courses.detail", course_id=course_id))
-
-    from database.repository import KnowledgeGapRepo
-    from database.models import KnowledgeGap
-    
-    saved_count = 0
-    for idx_str in selected_indices:
-        try:
-            idx = int(idx_str)
-        except ValueError:
-            continue
-        
-        # Lấy tên đã sửa (nếu có)
-        edited_title = request.form.get(f"gap_title_{idx}", "").strip()
-        if not edited_title:
-            continue
-        
-        # Kiểm tra lỗ hổng đã tồn tại chưa
-        existing = KnowledgeGap.query.filter_by(course_id=course_id, title=edited_title).first()
-        if not existing:
-            KnowledgeGapRepo.create(course_id, edited_title, "Phát hiện từ câu hỏi sinh viên")
-            saved_count += 1
-
-    if saved_count > 0:
-        flash(f"Đã lưu {saved_count} lỗ hổng kiến thức vào hệ thống.", "success")
-    else:
-        flash("Không có lỗ hổng mới nào được lưu (có thể đã tồn tại).", "info")
-
-    return redirect(url_for("refinement.review", course_id=course_id))
